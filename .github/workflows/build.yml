@@ -89,6 +89,7 @@ jobs:
 
                 if bash "$DIR/build.sh" "$DOCKERHUB_USERNAME" "$DIR" $FLAGS; then
                   echo "Build succeeded, updating versions.json..."
+                  docker system prune -af
                   jq ".[$i].built = true" "$VERSIONS_FILE" > "$VERSIONS_FILE.tmp" && mv "$VERSIONS_FILE.tmp" "$VERSIONS_FILE"
                   UPDATED=true
                 else
