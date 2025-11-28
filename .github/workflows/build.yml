@@ -1,84 +1,122 @@
-name: Build and Push MicroPython Containers
+name: Build and Push Containers
 
 on:
   push:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
-      - uses: docker/login-action@v2
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2   # needed for git diff
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build containers
+      - name: Detect changed directories & build
         run: |
           set -euo pipefail
 
-          # Find directories with Dockerfile
-          DIRS=$(find . -mindepth 1 -maxdepth 1 -type d \
-            ! -name ".github" ! -name "." \
-            -exec test -f "{}/Dockerfile" \; -print | sed 's|^\./||')
+          echo "Detecting changed files..."
+          CHANGED=$(git diff --name-only HEAD~1 HEAD || true)
+          echo "$CHANGED"
+
+          ROOT_DIR="$PWD"
+
+          # detect directories containing Dockerfile
+          DIRS=$(find . -mindepth 1 -maxdepth 1 -type d -exec test -f "{}/Dockerfile" \; -print | sed 's|^\./||')
 
           for DIR in $DIRS; do
-              echo "Processing directory: $DIR"
+            echo "-----------------------------------"
+            echo "Checking directory: $DIR"
 
-              if [[ ! -f "$DIR/versions.json" ]]; then
-                  echo "No versions.json found in $DIR, skipping."
-                  continue
+            # Check if any meaningful change happened
+            CHANGED_IN_DIR=false
+            while read -r FILE; do
+              [[ -z "$FILE" ]] && continue
+              [[ "$(basename "$FILE")" == "README.md" ]] && continue
+              [[ "$FILE" == "$DIR/"* ]] && CHANGED_IN_DIR=true
+            done <<< "$CHANGED"
+
+            if ! $CHANGED_IN_DIR; then
+              echo "Skipping $DIR (no meaningful change)"
+              continue
+            fi
+
+            VERSION_FILE="$DIR/versions.json"
+
+            if [[ ! -f "$VERSION_FILE" ]]; then
+              echo "No versions.json in $DIR, skipping"
+              continue
+            fi
+
+            echo "Loading versions.json from $VERSION_FILE"
+
+            COUNT=$(jq 'length' "$VERSION_FILE")
+            if [[ "$COUNT" -eq 0 ]]; then
+              echo "WARNING: $VERSION_FILE has no versions defined, skipping"
+              continue
+            fi
+
+            # iterate all versions that have built=false
+            for i in $(seq 0 $((COUNT-1))); do
+              BUILT=$(jq -r ".[$i].built" "$VERSION_FILE")
+              TAG=$(jq -r ".[$i].tag" "$VERSION_FILE")
+              MICROPYTHON=$(jq -r ".[$i].micropython" "$VERSION_FILE")
+
+              # skip already built tags
+              if [[ "$BUILT" == "true" ]]; then
+                echo "Already built: $DIR / $TAG"
+                continue
               fi
 
-              UNBUILT=$(jq '[.[] | select(.built==false)]' "$DIR/versions.json")
-              COUNT=$(echo "$UNBUILT" | jq length)
+              echo "-----------------------------------------"
+              echo "Running build.sh for $DIR"
+              echo "  TAG=$TAG"
+              echo "  MICROPYTHON=$MICROPYTHON"
+              echo "-----------------------------------------"
 
-              if [[ "$COUNT" -eq 0 ]]; then
-                  echo "All versions already built for $DIR, skipping."
-                  continue
-              fi
+              cd "$DIR"
 
-              echo "Found $COUNT unbuilt version(s) in $DIR"
+              chmod +x build.sh
 
-              for i in $(seq 0 $((COUNT - 1))); do
-                  ENTRY=$(echo "$UNBUILT" | jq ".[$i]")
+              # call build.sh with username and dynamic flags
+              ./build.sh "${{ secrets.DOCKERHUB_USERNAME }}" \
+                --tag "$TAG" \
+                --micropython "$MICROPYTHON"
 
-                  # Convert JSON properties to flags, ignore dir & built
-                  FLAGS=$(echo "$ENTRY" | jq -r 'to_entries | map(select(.key != "dir" and .key != "built") | "--\(.key) \"\(.value)\"") | join(" ")')
+              cd "$ROOT_DIR"
 
-                  echo "-----------------------------------------"
-                  echo "Running build.sh for $DIR with flags: $FLAGS"
-                  echo "-----------------------------------------"
-
-                  cd "$DIR"
-                  chmod +x build.sh
-                  # shellcheck disable=SC2086
-                  eval ./build.sh "${{ secrets.DOCKERHUB_USERNAME }}" $FLAGS
-                  cd - >/dev/null
-
-                  # Mark as built
-                  TAG=$(echo "$ENTRY" | jq -r '.tag')
-                  jq "map(if .tag==\"$TAG\" then .built=true else . end)" versions.json > versions.tmp.json
-                  mv versions.tmp.json versions.json
-              done
+              # mark version as built=true
+              jq ".[$i].built = true" "$VERSION_FILE" > "$VERSION_FILE.tmp"
+              mv "$VERSION_FILE.tmp" "$VERSION_FILE"
+            done
           done
 
-      - name: Commit updated versions.json
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "All builds completed."
 
-          git add */versions.json || echo "No changes to add"
-          if ! git diff --cached --quiet; then
-            git commit -m "Update built status in versions.json"
-            git push
-          else
-            echo "No versions.json changes to commit"
+      - name: Commit updated versions.json
+        if: success()
+        run: |
+          set -e
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add */versions.json || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Update built flags in versions.json"
+          git push
