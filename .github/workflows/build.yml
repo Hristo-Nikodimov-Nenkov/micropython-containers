@@ -10,8 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repo
+      # Step 1: Checkout repo with full history
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0   # fetch all commits so git diff works
 
       # Step 2: DockerHub login
       - uses: docker/login-action@v2
@@ -24,10 +26,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Fetch main branch for comparison
+          # Fetch main branch to compare against
           git fetch origin main
 
-          # Detect changed files relative to main
+          # Get changed files relative to main
           CHANGED_FILES=$(git diff --name-only origin/main...HEAD || true)
           echo "Changed files:"
           echo "$CHANGED_FILES"
@@ -65,7 +67,7 @@ jobs:
           echo "Final build matrix:"
           echo "$MATRIX"
 
-          # Write multi-line JSON safely for Actions
+          # Write matrix for GitHub Actions
           {
             echo "matrix<<EOF"
             echo "{ \"include\": $MATRIX }"
