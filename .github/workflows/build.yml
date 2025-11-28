@@ -5,108 +5,73 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write  # Needed to commit versions.json
+
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Checkout full repository history
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      # Step 2: DockerHub login
       - uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 3: Determine changed directories and build matrix
-      - id: dirs
+      - name: Build containers
         run: |
           set -euo pipefail
 
-          # Find directories with Dockerfile
           DIRS=$(find . -mindepth 1 -maxdepth 1 -type d \
             ! -name ".github" ! -name "." \
             -exec test -f "{}/Dockerfile" \; -print | sed 's|^\./||')
 
-          MATRIX="[]"
-
           for DIR in $DIRS; do
-            # Detect any added, copied, modified, or renamed files in the directory
-            FILES_CHANGED=$(git diff --name-only --diff-filter=ACMR origin/main...HEAD -- "$DIR" || true)
+              echo "Processing directory: $DIR"
 
-            # Exclude README.md only
-            FILES_CHANGED=$(echo "$FILES_CHANGED" | grep -v '^README.md$' || true)
+              if [[ ! -f "$DIR/versions.json" ]]; then
+                  echo "No versions.json found in $DIR, skipping."
+                  continue
+              fi
 
-            if [[ -z "$FILES_CHANGED" ]]; then
-              echo "Skipping $DIR (no meaningful change)"
-              continue
-            fi
+              UNBUILT=$(jq '[.[] | select(.built==false)]' "$DIR/versions.json")
+              COUNT=$(echo "$UNBUILT" | jq length)
 
-            echo "Processing $DIR due to changes in:"
-            echo "$FILES_CHANGED"
+              if [[ "$COUNT" -eq 0 ]]; then
+                  echo "All versions already built for $DIR, skipping."
+                  continue
+              fi
 
-            # Load versions.json for this directory
-            if [[ -f "$DIR/versions.json" ]]; then
-              ITEMS=$(jq --arg d "$DIR" '[ .[] | .dir=$d ]' "$DIR/versions.json")
-              MATRIX=$(jq -n --argjson a "$MATRIX" --argjson b "$ITEMS" '$a + $b')
-            fi
+              echo "Found $COUNT unbuilt version(s) in $DIR"
+
+              for i in $(seq 0 $((COUNT - 1))); do
+                  ENTRY=$(echo "$UNBUILT" | jq ".[$i]")
+                  FLAGS=$(echo "$ENTRY" | jq -r 'to_entries | map(select(.key != "dir") | "--\(.key) \"\(.value)\"") | join(" ")')
+
+                  echo "-----------------------------------------"
+                  echo "Running build.sh for $DIR with flags: $FLAGS"
+                  echo "-----------------------------------------"
+
+                  cd "$DIR"
+                  chmod +x build.sh
+                  USER="${{ secrets.DOCKERHUB_USERNAME }}"
+                  eval ./build.sh "$USER" $FLAGS
+                  cd - >/dev/null
+              done
           done
 
-          echo "Final build matrix:"
-          echo "$MATRIX"
-
-          # Set output for next step
-          {
-            echo "matrix<<EOF"
-            echo "{ \"include\": $MATRIX }"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      # Step 4: Build & push images
-      - name: Build & Push containers
+      - name: Commit updated versions.json
         run: |
-          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          MATRIX='${{ steps.dirs.outputs.matrix }}'
-          COUNT=$(echo "$MATRIX" | jq '.include | length')
-
-          if [[ "$COUNT" -eq 0 ]]; then
-            echo "No builds required."
-            exit 0
+          git add */versions.json || echo "No changes to add"
+          if ! git diff --cached --quiet; then
+            git commit -m "Update built status in versions.json"
+            git push
+          else
+            echo "No versions.json changes to commit"
           fi
-
-          echo "Building $COUNT image(s)..."
-
-          for i in $(seq 0 $((COUNT - 1))); do
-            ENTRY=$(echo "$MATRIX" | jq ".include[$i]")
-
-            DIR=$(echo "$ENTRY" | jq -r '.dir')
-
-            # Convert JSON fields (except dir) → CLI flags
-            FLAGS=$(echo "$ENTRY" | jq -r '
-              to_entries |
-              map(select(.key != "dir") | "--\(.key) \"\(.value)\"") |
-              join(" ")
-            ')
-
-            echo "-----------------------------------------"
-            echo "Building directory: $DIR"
-            echo "Flags: $FLAGS"
-            echo "-----------------------------------------"
-
-            cd "$DIR"
-            chmod +x build.sh
-
-            USER="${{ secrets.DOCKERHUB_USERNAME }}"
-
-            # Run the directory-specific build.sh
-            # shellcheck disable=SC2086
-            eval ./build.sh "$USER" $FLAGS
-
-            cd - >/dev/null
-          done
-
-          echo "All builds complete."

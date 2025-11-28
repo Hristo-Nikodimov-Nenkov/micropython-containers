@@ -1,59 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ────────────────────────────────────────────────────────────────
-# Positional argument 1 = DockerHub username
-# ────────────────────────────────────────────────────────────────
 if [[ $# -lt 1 ]]; then
-    echo "ERROR: Missing DockerHub username (first parameter)" >&2
-    echo "Usage: $0 <dockerhub-username> --tag <value> --micropython <value>"
+    echo "Usage: $0 <dockerhub_user> [--tag TAG --micropython VERSION ...]"
     exit 1
 fi
 
-DOCKER_USER="$1"
-shift 1   # Remove username, leave only flags
+USER="$1"
+shift
+FLAGS="$@"
 
-TAG=""
-MICROPYTHON=""
+# Extract flags
+TAG=$(echo "$FLAGS" | grep -oP '(?<=--tag )"\K[^"]+' || true)
+MICROPYTHON=$(echo "$FLAGS" | grep -oP '(?<=--micropython )"\K[^"]+' || true)
 
-# ────────────────────────────────────────────────────────────────
-# Parse flags
-# ────────────────────────────────────────────────────────────────
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --tag)
-            TAG="$2"; shift 2 ;;
-        --micropython)
-            MICROPYTHON="$2"; shift 2 ;;
-        *)
-            echo "Unknown flag: $1" >&2
-            exit 1 ;;
-    esac
-done
+echo "Building container:"
+echo "  TAG: $TAG"
+echo "  MICROPYTHON: $MICROPYTHON"
 
-# ────────────────────────────────────────────────────────────────
-# Validate required flags
-# ────────────────────────────────────────────────────────────────
-if [[ -z "$TAG" ]]; then
-    echo "ERROR: Missing --tag" >&2
-    exit 1
+docker build --build-arg MICROPYTHON_VERSION="$MICROPYTHON" -t "$USER/$(basename "$PWD"):$TAG" .
+docker push "$USER/$(basename "$PWD"):$TAG"
+
+# Update versions.json
+if [[ -f versions.json ]]; then
+    jq --arg tag "$TAG" 'map(if .tag==$tag then .built=true else . end)' versions.json > versions.tmp.json
+    mv versions.tmp.json versions.json
+    echo "Marked $TAG as built in versions.json"
 fi
-
-if [[ -z "$MICROPYTHON" ]]; then
-    echo "ERROR: Missing --micropython" >&2
-    exit 1
-fi
-
-echo "Building MicroPython container:"
-echo "  DockerHub user: $DOCKER_USER"
-echo "  TAG:            $TAG"
-echo "  MICROPYTHON:    $MICROPYTHON"
-
-# ────────────────────────────────────────────────────────────────
-# Docker build + push
-# ────────────────────────────────────────────────────────────────
-docker build \
-  --build-arg MICROPYTHON_VERSION="$MICROPYTHON" \
-  -t "$DOCKER_USER/micropython:$TAG" .
-
-docker push "$DOCKER_USER/micropython:$TAG"
