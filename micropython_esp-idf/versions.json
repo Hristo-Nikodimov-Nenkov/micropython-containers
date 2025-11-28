@@ -1,0 +1,14 @@
+[
+    {
+        "micropython": "v1.26.1",
+        "esp_idf": "v5.4.2",
+        "tag": "latest",
+        "built": false
+    },
+    {
+        "micropython": "v1.26.1",
+        "esp_idf": "v5.4.2",
+        "tag": "v1.26.1_v5.4.2",
+        "built": false
+    }
+]
