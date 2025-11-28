@@ -47,17 +47,17 @@
     {
         "tag": "v1.23.0",
         "micropython": "v1.23.0",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.23",
         "micropython": "v1.23.0",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.22.2",
         "micropython": "v1.22.2",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.22.1",
