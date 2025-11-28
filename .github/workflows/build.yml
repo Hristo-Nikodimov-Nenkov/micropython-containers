@@ -83,7 +83,12 @@ jobs:
           echo "Final build matrix:"
           echo "$MATRIX"
 
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          {
+            echo "matrix<<EOF"
+            echo "$MATRIX"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
 
 
   # --------------------------------------------------------------------------
