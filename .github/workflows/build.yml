@@ -28,14 +28,28 @@ jobs:
       - name: Determine changed directories
         id: changes
         run: |
-          git fetch origin ${{ github.base_ref }} --depth=1 || true
-          CHANGED_FILES=$(git diff --name-only HEAD origin/${{ github.base_ref }})
+          # Fetch commits to access .last_build_commit if needed
+          git fetch origin --depth=2
+
+          # Determine changed files
+          if [ -f ".last_build_commit" ]; then
+            LAST_SHA=$(cat .last_build_commit)
+            echo "Last workflow commit: $LAST_SHA"
+            CHANGED_FILES=$(git diff --name-only "$LAST_SHA" HEAD)
+          elif git rev-parse HEAD~1 >/dev/null 2>&1; then
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          else
+            # First commit, take all files
+            echo "First commit detected, building all directories."
+            CHANGED_FILES=$(git ls-files)
+          fi
 
           ALL_CHANGED_DIRS=()
           REBUILD_ALL=false
 
           for FILE in $CHANGED_FILES; do
             DIR=$(dirname "$FILE")
+            # Dockerfile, build.sh or build_firmware.sh triggers full rebuild
             if [[ "$FILE" == */Dockerfile || "$FILE" == */build.sh || "$FILE" == */build_firmware.sh ]]; then
               REBUILD_ALL=true
             fi
@@ -68,7 +82,6 @@ jobs:
                 FLAGS="$FLAGS --$key $value"
               done
 
-              # Determine if rebuild is needed
               if [[ "$REBUILD_ALL" == "true" || "$BUILT" == "false" ]]; then
                 FLAGS="$FLAGS --built false"
                 echo "Building image $DIR with flags $FLAGS"
@@ -91,13 +104,15 @@ jobs:
             fi
           done
 
-          # Commit all updated versions.json files in one commit
+          # Commit all updated versions.json and update last workflow commit
           if [ ${#CHANGED_VERSIONS[@]} -gt 0 ]; then
             echo "Committing updated versions.json files..."
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add "${CHANGED_VERSIONS[@]}"
-            git commit -m "Update built status in versions.json after successful Docker builds"
+            echo "$GITHUB_SHA" > .last_build_commit
+            git add .last_build_commit
+            git commit -m "Update built status and last workflow commit after successful Docker builds"
             git push
           else
             echo "No versions.json files changed, skipping commit."
