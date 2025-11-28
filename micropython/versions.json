@@ -2,7 +2,7 @@
     {
         "tag": "latest",
         "micropython": "v1.26.1",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.26.1",

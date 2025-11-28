@@ -1,8 +1,8 @@
-name: Build and Push Containers
+name: Build Docker Images
 
 on:
   push:
-    branches: [ main ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -11,112 +11,107 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 2   # needed for git diff
+          fetch-depth: 2
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Detect changed directories & build
+      - name: Build unbuilt or modified module versions
         run: |
           set -euo pipefail
 
-          echo "Detecting changed files..."
-          CHANGED=$(git diff --name-only HEAD~1 HEAD || true)
-          echo "$CHANGED"
-
-          ROOT_DIR="$PWD"
-
-          # detect directories containing Dockerfile
-          DIRS=$(find . -mindepth 1 -maxdepth 1 -type d -exec test -f "{}/Dockerfile" \; -print | sed 's|^\./||')
-
-          for DIR in $DIRS; do
-            echo "-----------------------------------"
-            echo "Checking directory: $DIR"
-
-            # Check if any meaningful change happened
-            CHANGED_IN_DIR=false
-            while read -r FILE; do
-              [[ -z "$FILE" ]] && continue
-              [[ "$(basename "$FILE")" == "README.md" ]] && continue
-              [[ "$FILE" == "$DIR/"* ]] && CHANGED_IN_DIR=true
-            done <<< "$CHANGED"
-
-            if ! $CHANGED_IN_DIR; then
-              echo "Skipping $DIR (no meaningful change)"
-              continue
-            fi
-
-            VERSION_FILE="$DIR/versions.json"
-
-            if [[ ! -f "$VERSION_FILE" ]]; then
-              echo "No versions.json in $DIR, skipping"
-              continue
-            fi
-
-            echo "Loading versions.json from $VERSION_FILE"
-
-            COUNT=$(jq 'length' "$VERSION_FILE")
-            if [[ "$COUNT" -eq 0 ]]; then
-              echo "WARNING: $VERSION_FILE has no versions defined, skipping"
-              continue
-            fi
-
-            # iterate all versions that have built=false
-            for i in $(seq 0 $((COUNT-1))); do
-              BUILT=$(jq -r ".[$i].built" "$VERSION_FILE")
-              TAG=$(jq -r ".[$i].tag" "$VERSION_FILE")
-              MICROPYTHON=$(jq -r ".[$i].micropython" "$VERSION_FILE")
-
-              # skip already built tags
-              if [[ "$BUILT" == "true" ]]; then
-                echo "Already built: $DIR / $TAG"
-                continue
+          echo "Detecting module directories…"
+          mapfile -t MODULES < <(
+            find . -maxdepth 1 -mindepth 1 -type d | while read -r d; do
+              if [[ -f "$d/versions.json" ]]; then
+                echo "$d"
               fi
+            done
+          )
 
-              echo "-----------------------------------------"
-              echo "Running build.sh for $DIR"
-              echo "  TAG=$TAG"
-              echo "  MICROPYTHON=$MICROPYTHON"
-              echo "-----------------------------------------"
+          echo "Modules detected: ${MODULES[*]}"
 
-              cd "$DIR"
+          echo "Computing changed files…"
+          git fetch --depth=2 origin ${{ github.ref }} || true
+          mapfile -t CHANGED < <(git diff --name-only ${{ github.event.before }} ${{ github.sha }} || true)
 
-              chmod +x build.sh
+          echo "Changed files:"
+          printf '%s\n' "${CHANGED[@]}"
 
-              # call build.sh with username and dynamic flags
-              ./build.sh "${{ secrets.DOCKERHUB_USERNAME }}" \
-                --tag "$TAG" \
-                --micropython "$MICROPYTHON"
+          for module in "${MODULES[@]}"; do
+            echo ""
+            echo "=================================="
+            echo "Processing module: $module"
+            echo "=================================="
 
-              cd "$ROOT_DIR"
+            VFILE="$module/versions.json"
+            DF="$module/Dockerfile"
+            BSH="$module/build.sh"
+            BFSH="$module/build_firmware.sh"
 
-              # mark version as built=true
-              jq ".[$i].built = true" "$VERSION_FILE" > "$VERSION_FILE.tmp"
-              mv "$VERSION_FILE.tmp" "$VERSION_FILE"
+            FORCE_REBUILD=false
+
+            echo "Checking if module requires forced rebuild…"
+
+            for f in "${CHANGED[@]}"; do
+              if [[ "$f" == "$DF" ]] || [[ "$f" == "$BSH" ]] || [[ "$f" == "$BFSH" ]]; then
+                echo "Detected change affecting module: $f"
+                FORCE_REBUILD=true
+                break
+              fi
+            done
+
+            if [[ "$FORCE_REBUILD" == true ]]; then
+              echo "Forcing full rebuild for $module"
+              jq 'map(.built = false)' "$VFILE" > "$VFILE.tmp"
+              mv "$VFILE.tmp" "$VFILE"
+            fi
+
+            # Determine what needs to be built
+            mapfile -t TO_BUILD < <(jq -c '.[] | select(.built == false)' "$VFILE")
+
+            if [[ ${#TO_BUILD[@]} -eq 0 ]]; then
+              echo "No builds needed for $module"
+              continue
+            fi
+
+            echo "Versions to build for $module: ${#TO_BUILD[@]}"
+
+            # Build missing versions
+            for item in "${TO_BUILD[@]}"; do
+              MPY=$(jq -r '.mpy' <<< "$item")
+              IDF=$(jq -r '.idf // empty' <<< "$item")       # optional for non-ESP modules
+              TAG=$(jq -r '.tag' <<< "$item")
+
+              echo ""
+              echo "--- Building ${module#./}:$TAG ---"
+
+              docker build \
+                -f "$DF" \
+                --build-arg MPY_VERSION="$MPY" \
+                $( [[ -n "$IDF" ]] && echo "--build-arg IDF_VERSION=$IDF" ) \
+                -t ${{ secrets.DOCKERHUB_USERNAME }}/${module#./}:"$TAG" \
+                "$module"
+
+              docker push ${{ secrets.DOCKERHUB_USERNAME }}/${module#./}:"$TAG"
+
+              # Mark version as built
+              jq "(map(if .tag == \"$TAG\" then .built = true else . end))" \
+                "$VFILE" > "$VFILE.tmp"
+              mv "$VFILE.tmp" "$VFILE"
             done
           done
 
-          echo "All builds completed."
-
-      - name: Commit updated versions.json
-        if: success()
+      - name: Commit updated versions.json files
         run: |
-          set -e
-
+          set -euo pipefail
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-
-          git add */versions.json || true
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-
-          git commit -m "Update built flags in versions.json"
+          git add */versions.json
+          git commit -m "Update built flags after builds" || echo "No JSON changes to commit"
           git push
