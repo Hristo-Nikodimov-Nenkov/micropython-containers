@@ -1,0 +1,90 @@
+name: Build and Push MicroPython Containers
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - id: gen
+        run: |
+          # Find directories with Dockerfile
+          DIRS=$(find . -mindepth 1 -maxdepth 1 -type d \
+            ! -name ".github" ! -name "." \
+            -exec test -f "{}/Dockerfile" \; -print | sed 's|^\./||')
+
+          # Get changed files in last commit(s)
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+
+          MATRIX="[]"
+
+          for DIR in $DIRS; do
+            DIR_CHANGED=false
+
+            # Check for changes in the directory except README.md
+            while read -r FILE; do
+              [[ "$(basename "$FILE")" == "README.md" ]] && continue
+              if [[ "$FILE" == "$DIR/"* ]]; then
+                DIR_CHANGED=true
+                break
+              fi
+            done <<< "$CHANGED_FILES"
+
+            # Skip directory if no relevant change
+            if ! $DIR_CHANGED; then
+              echo "Skipping $DIR (no changes or only README.md)"
+              continue
+            fi
+
+            # Load versions.json for this directory
+            if [[ -f "$DIR/versions.json" ]]; then
+              ITEMS=$(jq --arg d "$DIR" '[ .[] | .dir=$d ]' "$DIR/versions.json")
+              MATRIX=$(jq -n --argjson a "$MATRIX" --argjson b "$ITEMS" '$a + $b')
+            fi
+          done
+
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "Matrix for build:" 
+          echo "$MATRIX"
+
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build container
+        run: |
+          DIR="${{ matrix.dir }}"
+
+          # Convert JSON properties to --key "value"
+          FLAGS=$(jq -r '
+            to_entries |
+            map(select(.key != "dir") | "--\(.key) \"\(.value)\"") |
+            join(" ")
+          ' <<< '${{ toJSON(matrix) }}')
+
+          echo "Building $DIR with flags: $FLAGS"
+
+          chmod +x "$DIR/build.sh"
+          cd "$DIR"
+
+          # Run build.sh with dynamic flags
+          # shellcheck disable=SC2086
+          eval ./build.sh $FLAGS
