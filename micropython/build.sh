@@ -1,29 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 1 ]]; then
-    echo "Usage: $0 <dockerhub_user> [--tag TAG --micropython VERSION ...]"
-    exit 1
-fi
-
-USER="$1"
+# DockerHub username is always the first argument
+DOCKERHUB_USER="$1"
 shift
-FLAGS="$@"
 
-# Extract flags
-TAG=$(echo "$FLAGS" | grep -oP '(?<=--tag )"\K[^"]+' || true)
-MICROPYTHON=$(echo "$FLAGS" | grep -oP '(?<=--micropython )"\K[^"]+' || true)
+TAG=""
+MICROPYTHON=""
+ESP_IDF=""
+
+# Parse flags, ignore unknown ones
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --tag) TAG="$2"; shift 2 ;;
+    --micropython) MICROPYTHON="$2"; shift 2 ;;
+    --esp_idf) ESP_IDF="$2"; shift 2 ;;  # only for esp-idf builds
+    *) shift 2 ;;  # ignore unknown flags
+  esac
+done
+
+# Required flags
+if [[ -z "$TAG" ]] || [[ -z "$MICROPYTHON" ]]; then
+  echo "ERROR: --tag and --micropython are required"
+  exit 1
+fi
 
 echo "Building container:"
-echo "  TAG: $TAG"
-echo "  MICROPYTHON: $MICROPYTHON"
+echo "  TAG=$TAG"
+echo "  MICROPYTHON=$MICROPYTHON"
+[[ -n "$ESP_IDF" ]] && echo "  ESP_IDF=$ESP_IDF"
 
-docker build --build-arg MICROPYTHON_VERSION="$MICROPYTHON" -t "$USER/$(basename "$PWD"):$TAG" .
-docker push "$USER/$(basename "$PWD"):$TAG"
+# Build command
+BUILD_ARGS="--build-arg MICROPYTHON_VERSION=$MICROPYTHON"
+[[ -n "$ESP_IDF" ]] && BUILD_ARGS="$BUILD_ARGS --build-arg ESP_IDF_VERSION=$ESP_IDF"
 
-# Update versions.json
-if [[ -f versions.json ]]; then
-    jq --arg tag "$TAG" 'map(if .tag==$tag then .built=true else . end)' versions.json > versions.tmp.json
-    mv versions.tmp.json versions.json
-    echo "Marked $TAG as built in versions.json"
-fi
+docker build $BUILD_ARGS -t "$DOCKERHUB_USER/$PWD:$TAG" .
+docker push "$DOCKERHUB_USER/$PWD:$TAG"

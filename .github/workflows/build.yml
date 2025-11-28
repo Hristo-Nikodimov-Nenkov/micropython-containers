@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # Needed to commit versions.json
+  contents: write  # needed to commit versions.json updates
 
 jobs:
   build:
@@ -25,6 +25,7 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Find directories with Dockerfile
           DIRS=$(find . -mindepth 1 -maxdepth 1 -type d \
             ! -name ".github" ! -name "." \
             -exec test -f "{}/Dockerfile" \; -print | sed 's|^\./||')
@@ -49,7 +50,9 @@ jobs:
 
               for i in $(seq 0 $((COUNT - 1))); do
                   ENTRY=$(echo "$UNBUILT" | jq ".[$i]")
-                  FLAGS=$(echo "$ENTRY" | jq -r 'to_entries | map(select(.key != "dir") | "--\(.key) \"\(.value)\"") | join(" ")')
+
+                  # Convert JSON properties to flags, ignore dir & built
+                  FLAGS=$(echo "$ENTRY" | jq -r 'to_entries | map(select(.key != "dir" and .key != "built") | "--\(.key) \"\(.value)\"") | join(" ")')
 
                   echo "-----------------------------------------"
                   echo "Running build.sh for $DIR with flags: $FLAGS"
@@ -57,9 +60,14 @@ jobs:
 
                   cd "$DIR"
                   chmod +x build.sh
-                  USER="${{ secrets.DOCKERHUB_USERNAME }}"
-                  eval ./build.sh "$USER" $FLAGS
+                  # shellcheck disable=SC2086
+                  eval ./build.sh "${{ secrets.DOCKERHUB_USERNAME }}" $FLAGS
                   cd - >/dev/null
+
+                  # Mark as built
+                  TAG=$(echo "$ENTRY" | jq -r '.tag')
+                  jq "map(if .tag==\"$TAG\" then .built=true else . end)" versions.json > versions.tmp.json
+                  mv versions.tmp.json versions.json
               done
           done
 
