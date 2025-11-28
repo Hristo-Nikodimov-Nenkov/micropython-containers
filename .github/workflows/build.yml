@@ -10,20 +10,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout repo
       - uses: actions/checkout@v3
 
-      # Authenticate to DockerHub
+      # Step 2: DockerHub login
       - uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Determine directories with relevant changes
-        id: dirs
+      # Step 3: Determine changed directories and build matrix
+      - id: dirs
         run: |
           set -euo pipefail
 
-          # If this is the first commit, avoid HEAD~1 errors
+          # Handle initial commit safely
           if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
             CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
           else
@@ -33,6 +34,7 @@ jobs:
           echo "Changed files:"
           echo "$CHANGED_FILES"
 
+          # Find directories with Dockerfile
           DIRS=$(find . -mindepth 1 -maxdepth 1 -type d \
             ! -name ".github" ! -name "." \
             -exec test -f "{}/Dockerfile" \; -print | sed 's|^\./||')
@@ -65,10 +67,15 @@ jobs:
           echo "Final build matrix:"
           echo "$MATRIX"
 
-          echo "matrix={\"include\": $MATRIX}" >> $GITHUB_OUTPUT
+          # Write multi-line JSON safely
+          {
+            echo "matrix<<EOF"
+            echo "{ \"include\": $MATRIX }"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Build & Push all required container images
-        if: ${{ fromJSON(steps.dirs.outputs.matrix).include != null && fromJSON(steps.dirs.outputs.matrix).include != '' }}
+      # Step 4: Build & push images
+      - name: Build & Push containers
         run: |
           set -euo pipefail
 
@@ -82,13 +89,12 @@ jobs:
 
           echo "Building $COUNT image(s)..."
 
-          # Loop over matrix entries manually
           for i in $(seq 0 $((COUNT - 1))); do
             ENTRY=$(echo "$MATRIX" | jq ".include[$i]")
 
             DIR=$(echo "$ENTRY" | jq -r '.dir')
 
-            # Convert JSON fields (except dir) → flags
+            # Convert JSON fields (except dir) → CLI flags
             FLAGS=$(echo "$ENTRY" | jq -r '
               to_entries |
               map(select(.key != "dir") | "--\(.key) \"\(.value)\"") |
@@ -103,10 +109,9 @@ jobs:
             cd "$DIR"
             chmod +x build.sh
 
-            # Use DockerHub username from GitHub secret
             USER="${{ secrets.DOCKERHUB_USERNAME }}"
 
-            # Run build.sh
+            # Run the directory-specific build.sh
             # shellcheck disable=SC2086
             eval ./build.sh "$USER" $FLAGS
 
