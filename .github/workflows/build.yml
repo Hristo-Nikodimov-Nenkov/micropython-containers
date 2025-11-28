@@ -61,6 +61,9 @@ jobs:
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
       fail-fast: false
 
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
     steps:
       - uses: actions/checkout@v3
 
@@ -81,10 +84,10 @@ jobs:
           ' <<< '${{ toJSON(matrix) }}')
 
           echo "Building $DIR with flags: $FLAGS"
+          echo "Using DockerHub user: $DOCKERHUB_USERNAME"
 
           chmod +x "$DIR/build.sh"
           cd "$DIR"
 
-          # Run build.sh with dynamic flags
           # shellcheck disable=SC2086
-          eval ./build.sh $FLAGS
+          eval ./build.sh "$DOCKERHUB_USERNAME" $FLAGS
