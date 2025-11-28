@@ -15,45 +15,80 @@ jobs:
 
       - id: gen
         run: |
-          # Find directories with Dockerfile
+          echo "Scanning directories..."
+
+          # --------------------------------------------------------
+          # Find directories containing a Dockerfile
+          # --------------------------------------------------------
           DIRS=$(find . -mindepth 1 -maxdepth 1 -type d \
             ! -name ".github" ! -name "." \
             -exec test -f "{}/Dockerfile" \; -print | sed 's|^\./||')
 
-          # Get changed files in last commit(s)
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          echo "Found directories:"
+          echo "$DIRS"
+
+          # --------------------------------------------------------
+          # Detect changed files (safe even on first commit)
+          # --------------------------------------------------------
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+              echo "Repository has multiple commits — using git diff."
+              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          else
+              echo "Only one commit exists — rebuilding all directories."
+              CHANGED_FILES=$(git ls-files)
+          fi
+
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
 
           MATRIX="[]"
 
           for DIR in $DIRS; do
             DIR_CHANGED=false
 
-            # Check for changes in the directory except README.md
+            echo "Checking directory: $DIR"
+
+            # --------------------------------------------------------
+            # Check if any file in this directory changed (except README.md)
+            # --------------------------------------------------------
             while read -r FILE; do
+              # Skip README.md
               [[ "$(basename "$FILE")" == "README.md" ]] && continue
+
+              # File inside this directory?
               if [[ "$FILE" == "$DIR/"* ]]; then
                 DIR_CHANGED=true
                 break
               fi
             done <<< "$CHANGED_FILES"
 
-            # Skip directory if no relevant change
             if ! $DIR_CHANGED; then
-              echo "Skipping $DIR (no changes or only README.md)"
+              echo " → No relevant changes in $DIR (or only README.md). Skipping."
               continue
             fi
 
-            # Load versions.json for this directory
+            echo " → Changes detected in $DIR"
+
+            # --------------------------------------------------------
+            # Load versions.json in this directory
+            # --------------------------------------------------------
             if [[ -f "$DIR/versions.json" ]]; then
               ITEMS=$(jq --arg d "$DIR" '[ .[] | .dir=$d ]' "$DIR/versions.json")
               MATRIX=$(jq -n --argjson a "$MATRIX" --argjson b "$ITEMS" '$a + $b')
+            else
+              echo "WARNING: $DIR has no versions.json — skipping."
             fi
           done
 
-          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
-          echo "Matrix for build:" 
+          echo "Final build matrix:"
           echo "$MATRIX"
 
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
+
+  # --------------------------------------------------------------------------
+  # Build and Push
+  # --------------------------------------------------------------------------
   build:
     needs: prepare
     runs-on: ubuntu-latest
@@ -67,6 +102,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # DockerHub login
       - uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -76,18 +112,22 @@ jobs:
         run: |
           DIR="${{ matrix.dir }}"
 
-          # Convert JSON properties to --key "value"
+          echo "Directory: $DIR"
+          echo "Using DockerHub user: $DOCKERHUB_USERNAME"
+
+          # Convert all JSON key-value pairs to CLI flags:
+          #   key=value → --key "value"
           FLAGS=$(jq -r '
             to_entries |
             map(select(.key != "dir") | "--\(.key) \"\(.value)\"") |
             join(" ")
           ' <<< '${{ toJSON(matrix) }}')
 
-          echo "Building $DIR with flags: $FLAGS"
-          echo "Using DockerHub user: $DOCKERHUB_USERNAME"
+          echo "Flags: $FLAGS"
 
           chmod +x "$DIR/build.sh"
           cd "$DIR"
 
+          # Pass DockerHub username as the first parameter.
           # shellcheck disable=SC2086
           eval ./build.sh "$DOCKERHUB_USERNAME" $FLAGS
