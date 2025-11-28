@@ -1,117 +1,104 @@
-name: Build Docker Images
+name: Build and Push Docker Containers
 
 on:
   push:
-    branches: ["main"]
-  workflow_dispatch:
+    paths:
+      - '**/Dockerfile'
+      - '**/build_firmware.sh'
+      - '**/build.sh'
+      - '**/versions.json'
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Build unbuilt or modified module versions
+      - name: Log in to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Determine changed directories
+        id: changes
         run: |
-          set -euo pipefail
+          git fetch origin ${{ github.base_ref }} --depth=1 || true
+          CHANGED_FILES=$(git diff --name-only HEAD origin/${{ github.base_ref }})
 
-          echo "Detecting module directories…"
-          mapfile -t MODULES < <(
-            find . -maxdepth 1 -mindepth 1 -type d | while read -r d; do
-              if [[ -f "$d/versions.json" ]]; then
-                echo "$d"
-              fi
-            done
-          )
+          ALL_CHANGED_DIRS=()
+          REBUILD_ALL=false
 
-          echo "Modules detected: ${MODULES[*]}"
-
-          echo "Computing changed files…"
-          git fetch --depth=2 origin ${{ github.ref }} || true
-          mapfile -t CHANGED < <(git diff --name-only ${{ github.event.before }} ${{ github.sha }} || true)
-
-          echo "Changed files:"
-          printf '%s\n' "${CHANGED[@]}"
-
-          for module in "${MODULES[@]}"; do
-            echo ""
-            echo "=================================="
-            echo "Processing module: $module"
-            echo "=================================="
-
-            VFILE="$module/versions.json"
-            DF="$module/Dockerfile"
-            BSH="$module/build.sh"
-            BFSH="$module/build_firmware.sh"
-
-            FORCE_REBUILD=false
-
-            echo "Checking if module requires forced rebuild…"
-
-            for f in "${CHANGED[@]}"; do
-              if [[ "$f" == "$DF" ]] || [[ "$f" == "$BSH" ]] || [[ "$f" == "$BFSH" ]]; then
-                echo "Detected change affecting module: $f"
-                FORCE_REBUILD=true
-                break
-              fi
-            done
-
-            if [[ "$FORCE_REBUILD" == true ]]; then
-              echo "Forcing full rebuild for $module"
-              jq 'map(.built = false)' "$VFILE" > "$VFILE.tmp"
-              mv "$VFILE.tmp" "$VFILE"
+          for FILE in $CHANGED_FILES; do
+            DIR=$(dirname "$FILE")
+            if [[ "$FILE" == */Dockerfile || "$FILE" == */build.sh || "$FILE" == */build_firmware.sh ]]; then
+              REBUILD_ALL=true
             fi
-
-            # Determine what needs to be built
-            mapfile -t TO_BUILD < <(jq -c '.[] | select(.built == false)' "$VFILE")
-
-            if [[ ${#TO_BUILD[@]} -eq 0 ]]; then
-              echo "No builds needed for $module"
-              continue
+            if [[ ! " ${ALL_CHANGED_DIRS[@]} " =~ " ${DIR} " ]]; then
+              ALL_CHANGED_DIRS+=("$DIR")
             fi
-
-            echo "Versions to build for $module: ${#TO_BUILD[@]}"
-
-            # Build missing versions
-            for item in "${TO_BUILD[@]}"; do
-              MPY=$(jq -r '.mpy' <<< "$item")
-              IDF=$(jq -r '.idf // empty' <<< "$item")       # optional for non-ESP modules
-              TAG=$(jq -r '.tag' <<< "$item")
-
-              echo ""
-              echo "--- Building ${module#./}:$TAG ---"
-
-              docker build \
-                -f "$DF" \
-                --build-arg MPY_VERSION="$MPY" \
-                $( [[ -n "$IDF" ]] && echo "--build-arg IDF_VERSION=$IDF" ) \
-                -t ${{ secrets.DOCKERHUB_USERNAME }}/${module#./}:"$TAG" \
-                "$module"
-
-              docker push ${{ secrets.DOCKERHUB_USERNAME }}/${module#./}:"$TAG"
-
-              # Mark version as built
-              jq "(map(if .tag == \"$TAG\" then .built = true else . end))" \
-                "$VFILE" > "$VFILE.tmp"
-              mv "$VFILE.tmp" "$VFILE"
-            done
           done
 
-      - name: Commit updated versions.json files
+          echo "ALL_CHANGED_DIRS=${ALL_CHANGED_DIRS[*]}" >> $GITHUB_ENV
+          echo "REBUILD_ALL=$REBUILD_ALL" >> $GITHUB_ENV
+
+      - name: Build and push Docker images
         run: |
-          set -euo pipefail
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add */versions.json
-          git commit -m "Update built flags after builds" || echo "No JSON changes to commit"
-          git push
+          CHANGED_VERSIONS=()
+
+          for DIR in $ALL_CHANGED_DIRS; do
+            echo "Processing directory: $DIR"
+
+            VERSIONS_FILE="$DIR/versions.json"
+            UPDATED=false
+
+            for i in $(seq 0 $(($(jq length "$VERSIONS_FILE") - 1))); do
+              VERSION=$(jq -c ".[$i]" "$VERSIONS_FILE")
+              BUILT=$(echo "$VERSION" | jq -r '.built // false')
+
+              # Map all properties to flags
+              FLAGS=""
+              for key in $(echo "$VERSION" | jq -r 'keys[]'); do
+                value=$(echo "$VERSION" | jq -r ".${key}")
+                FLAGS="$FLAGS --$key $value"
+              done
+
+              # Determine if rebuild is needed
+              if [[ "$REBUILD_ALL" == "true" || "$BUILT" == "false" ]]; then
+                FLAGS="$FLAGS --built false"
+                echo "Building image $DIR with flags $FLAGS"
+
+                if bash "$DIR/build.sh" "$DOCKERHUB_USERNAME" "$DIR" $FLAGS; then
+                  echo "Build succeeded, updating versions.json..."
+                  jq ".[$i].built = true" "$VERSIONS_FILE" > "$VERSIONS_FILE.tmp" && mv "$VERSIONS_FILE.tmp" "$VERSIONS_FILE"
+                  UPDATED=true
+                else
+                  echo "Build failed for $DIR"
+                  exit 1
+                fi
+              else
+                echo "Skipping image in $DIR (already built)"
+              fi
+            done
+
+            if [ "$UPDATED" = true ]; then
+              CHANGED_VERSIONS+=("$VERSIONS_FILE")
+            fi
+          done
+
+          # Commit all updated versions.json files in one commit
+          if [ ${#CHANGED_VERSIONS[@]} -gt 0 ]; then
+            echo "Committing updated versions.json files..."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add "${CHANGED_VERSIONS[@]}"
+            git commit -m "Update built status in versions.json after successful Docker builds"
+            git push
+          else
+            echo "No versions.json files changed, skipping commit."
+          fi
