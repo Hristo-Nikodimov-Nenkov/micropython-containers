@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # needed to commit versions.json updates
+  contents: write
 
 jobs:
   build:
@@ -82,4 +82,3 @@ jobs:
             git push
           else
             echo "No versions.json changes to commit"
-          fi
