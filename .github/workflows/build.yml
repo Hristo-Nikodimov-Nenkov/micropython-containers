@@ -24,13 +24,11 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Handle initial commit safely
-          if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
-          else
-            CHANGED_FILES=$(git diff --name-only HEAD)
-          fi
+          # Fetch main branch for comparison
+          git fetch origin main
 
+          # Detect changed files relative to main
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD || true)
           echo "Changed files:"
           echo "$CHANGED_FILES"
 
@@ -67,7 +65,7 @@ jobs:
           echo "Final build matrix:"
           echo "$MATRIX"
 
-          # Write multi-line JSON safely
+          # Write multi-line JSON safely for Actions
           {
             echo "matrix<<EOF"
             echo "{ \"include\": $MATRIX }"
