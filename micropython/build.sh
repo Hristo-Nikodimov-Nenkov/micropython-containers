@@ -1,40 +1,70 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+set -e
 
-# DockerHub username is always the first argument
-DOCKERHUB_USER="$1"
-shift
+# -----------------------------
+# Arguments
+# -----------------------------
+USERNAME="$1"
+DIRECTORY="$2"
+shift 2  # Remove first two args, rest are flags
 
+# Extract directory name for Docker repo
+DIR_NAME=$(basename "$DIRECTORY")
+
+# Default value
+BUILT="false"
+
+# -----------------------------
+# Parse flags
+# -----------------------------
 TAG=""
-MICROPYTHON=""
-ESP_IDF=""
-DIR_NAME=$(basename "$PWD")  # Use basename for Docker image name
+MICROPYTHON_VERSION=""
 
-# Parse flags, ignore unknown ones
 while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --tag) TAG="$2"; shift 2 ;;
-    --micropython) MICROPYTHON="$2"; shift 2 ;;
-    --esp_idf) ESP_IDF="$2"; shift 2 ;;  # optional, only for esp-idf images
-    *) shift 2 ;;  # ignore unknown flags
+  key="$1"
+  case $key in
+    --tag)
+      TAG="$2"
+      shift 2
+      ;;
+    --micropython)
+      MICROPYTHON_VERSION="$2"
+      shift 2
+      ;;
+    --built)
+      BUILT="$2"
+      shift 2
+      ;;
+    *)
+      # Ignore unknown flags
+      shift
+      ;;
   esac
 done
 
-# Required flags
-if [[ -z "$TAG" ]] || [[ -z "$MICROPYTHON" ]]; then
-  echo "ERROR: --tag and --micropython are required"
-  exit 1
+# -----------------------------
+# Validate required properties
+# -----------------------------
+if [[ -z "$MICROPYTHON_VERSION" ]]; then
+  echo "Missing required property in versions.json (micropython)."
+  exit 2
 fi
 
-echo "Building container:"
-echo "  TAG=$TAG"
-echo "  MICROPYTHON=$MICROPYTHON"
-[[ -n "$ESP_IDF" ]] && echo "  ESP_IDF=$ESP_IDF"
+if [[ -z "$TAG" ]]; then
+  echo "Missing required property in versions.json (tag)."
+  exit 3
+fi
 
-# Build arguments
-BUILD_ARGS="--build-arg MICROPYTHON_VERSION=$MICROPYTHON"
-[[ -n "$ESP_IDF" ]] && BUILD_ARGS="$BUILD_ARGS --build-arg ESP_IDF_VERSION=$ESP_IDF"
+# -----------------------------
+# Build and push Docker image
+# -----------------------------
+echo "Building Docker image: $USERNAME/$DIR_NAME:$TAG"
+docker build --rm \
+  --build-arg MICROPYTHON_VERSION="$MICROPYTHON_VERSION" \
+  -t "$USERNAME/$DIR_NAME:$TAG" \
+  "$DIRECTORY"
 
-# Build and push
-docker build $BUILD_ARGS -t "$DOCKERHUB_USER/$DIR_NAME:$TAG" .
-docker push "$DOCKERHUB_USER/$DIR_NAME:$TAG"
+echo "Pushing Docker image: $USERNAME/$DIR_NAME:$TAG"
+docker push "$USERNAME/$DIR_NAME:$TAG"
+
+echo "Build and push completed for $USERNAME/$DIR_NAME:$TAG (built=$BUILT)"
