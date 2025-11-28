@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
       MICROPYTHON_VERSION="$value"
       shift 2
       ;;
-    --esp_idf_version)
+    --esp_idf)
       ESP_IDF_VERSION="$value"
       shift 2
       ;;
