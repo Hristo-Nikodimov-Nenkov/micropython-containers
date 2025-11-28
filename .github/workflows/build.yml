@@ -3,6 +3,7 @@ name: Build and Push Docker Containers
 on:
   push:
     paths:
+      - '**/build.yml'
       - '**/Dockerfile'
       - '**/build_firmware.sh'
       - '**/build.sh'
