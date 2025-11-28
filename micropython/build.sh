@@ -1,22 +1,14 @@
 #!/bin/bash
 set -e
 
-# -----------------------------
-# Arguments
-# -----------------------------
 USERNAME="$1"
 DIRECTORY="$2"
 shift 2  # Remove first two args, rest are flags
 
-# Extract directory name for Docker repo
 DIR_NAME=$(basename "$DIRECTORY")
 
-# Default value
 BUILT="false"
 
-# -----------------------------
-# Parse flags
-# -----------------------------
 TAG=""
 MICROPYTHON_VERSION=""
 
