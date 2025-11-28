@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout repo with full history
+      # Step 1: Checkout full repository history
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 0   # fetch all commits so git diff works
+          fetch-depth: 0
 
       # Step 2: DockerHub login
       - uses: docker/login-action@v2
@@ -26,14 +26,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Fetch main branch to compare against
-          git fetch origin main
-
-          # Get changed files relative to main
-          CHANGED_FILES=$(git diff --name-only origin/main...HEAD || true)
-          echo "Changed files:"
-          echo "$CHANGED_FILES"
-
           # Find directories with Dockerfile
           DIRS=$(find . -mindepth 1 -maxdepth 1 -type d \
             ! -name ".github" ! -name "." \
@@ -42,22 +34,21 @@ jobs:
           MATRIX="[]"
 
           for DIR in $DIRS; do
-            DIR_CHANGED=false
+            # Get all changed files in the directory relative to main
+            FILES_CHANGED=$(git diff --name-only origin/main...HEAD -- "$DIR" || true)
+            
+            # Exclude README.md
+            FILES_CHANGED=$(echo "$FILES_CHANGED" | grep -v '^README.md$' || true)
 
-            while read -r FILE; do
-              [[ -z "$FILE" ]] && continue
-              [[ "$(basename "$FILE")" == "README.md" ]] && continue
-              if [[ "$FILE" == "$DIR/"* ]]; then
-                DIR_CHANGED=true
-                break
-              fi
-            done <<< "$CHANGED_FILES"
-
-            if ! $DIR_CHANGED; then
+            if [[ -z "$FILES_CHANGED" ]]; then
               echo "Skipping $DIR (no meaningful change)"
               continue
             fi
 
+            echo "Processing $DIR due to changes in:"
+            echo "$FILES_CHANGED"
+
+            # Load versions.json for this directory
             if [[ -f "$DIR/versions.json" ]]; then
               ITEMS=$(jq --arg d "$DIR" '[ .[] | .dir=$d ]' "$DIR/versions.json")
               MATRIX=$(jq -n --argjson a "$MATRIX" --argjson b "$ITEMS" '$a + $b')
@@ -67,7 +58,7 @@ jobs:
           echo "Final build matrix:"
           echo "$MATRIX"
 
-          # Write matrix for GitHub Actions
+          # Set output for workflow
           {
             echo "matrix<<EOF"
             echo "{ \"include\": $MATRIX }"
