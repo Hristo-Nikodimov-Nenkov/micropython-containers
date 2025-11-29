@@ -125,6 +125,7 @@ for dir in "$WORKSPACE"/*/ ; do
 
         (
             cd "$dir"
+            chmod +x ./build.sh
             eval ./build.sh $final_flags
         )
 
