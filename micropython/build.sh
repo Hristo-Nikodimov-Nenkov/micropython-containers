@@ -52,14 +52,14 @@ fi
 # -----------------------------
 # Build and push Docker image
 # -----------------------------
-echo "Building Docker image: $USERNAME/$DIR_NAME:$TAG"
+echo "Building Docker image: $DOCKERHUB_USERNAME/$DIR_NAME:$TAG"
 docker build --rm \
   --build-arg MICROPYTHON_VERSION="$MICROPYTHON_VERSION" \
-  -t "$USERNAME/$DIR_NAME:$TAG" \
+  -t "$DOCKERHUB_USERNAME/$DIR_NAME:$TAG" \
   "$DIRECTORY"
 
-echo "Pushing Docker image: $USERNAME/$DIR_NAME:$TAG"
-docker push "$USERNAME/$DIR_NAME:$TAG"
+echo "Pushing Docker image: $DOCKERHUB_USERNAME/$DIR_NAME:$TAG"
+docker push "$DOCKERHUB_USERNAME/$DIR_NAME:$TAG"
 
 # -----------------------------
 # Update versions.json "built": true
@@ -69,4 +69,4 @@ VERSION_JSON="$DIRECTORY/versions.json"
 jq "map(if .micropython == \"$MICROPYTHON_VERSION\" and .tag == \"$TAG\" then .built = true else . end)" \
   "$VERSION_JSON" > "$VERSION_JSON.tmp" && mv "$VERSION_JSON.tmp" "$VERSION_JSON"
 
-echo "Build and push completed for $USERNAME/$DIR_NAME:$TAG (built=true)"
+echo "Build and push completed for $DOCKERHUB_USERNAME/$DIR_NAME:$TAG (built=true)"
