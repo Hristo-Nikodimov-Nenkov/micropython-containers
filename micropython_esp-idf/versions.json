@@ -10,5 +10,23 @@
         "esp_idf": "v5.4.2",
         "tag": "v1.26.1_v5.4.2",
         "built": false
+    },
+    {
+        "micropython": "v1.25.0",
+        "esp_idf": "v5.2.2",
+        "tag": "v1.25.0_v5.2",
+        "built": false
+    },
+    {
+        "micropython": "v1.25.0",
+        "esp_idf": "v5.2.2",
+        "tag": "v1.25.0_v5.2.2",
+        "built": false
+    },
+    {
+        "micropython": "v1.25.0",
+        "esp_idf": "v5.2.1",
+        "tag": "v1.25.0_v5.2.1",
+        "built": false
     }
 ]
