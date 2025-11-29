@@ -18,7 +18,7 @@ RUN git config --global user.name "$GIT_USER_NAME" && \
 
 WORKDIR /var/containers
 
-COPY build_containers.sh /build_containers.sh
-RUN chmod +x /build_containers.sh
+COPY build_containers.sh /usr/lib/build_containers.sh
+RUN chmod +x /usr/lib/build_containers.sh
 
 ENTRYPOINT ["/build_containers.sh"]
