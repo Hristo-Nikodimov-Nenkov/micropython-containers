@@ -1,0 +1,12 @@
+services:
+  build_containers:
+    build:
+      context: .
+    container_name: build_containers
+    environment:
+      DOCKERHUB_USERNAME: "${DOCKERHUB_USERNAME}"
+      DOCKERHUB_TOKEN: "${DOCKERHUB_TOKEN}"
+    volumes:
+      - ./:/var/containers
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: "no"

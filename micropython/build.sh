@@ -1,17 +1,19 @@
 #!/bin/bash
 set -e
 
-USERNAME="$1"
-DIRECTORY="$2"
-shift 2  # Remove first two args, rest are flags
-
+# -----------------------------
+# Determine service directory
+# -----------------------------
+DIRECTORY=$(pwd)
 DIR_NAME=$(basename "$DIRECTORY")
 
 BUILT="false"
-
 TAG=""
 MICROPYTHON_VERSION=""
 
+# -----------------------------
+# Parse flags from CLI
+# -----------------------------
 while [[ $# -gt 0 ]]; do
   key="$1"
   case $key in
@@ -29,7 +31,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       # Ignore unknown flags
-      shift
+      shift 2
       ;;
   esac
 done
@@ -59,4 +61,12 @@ docker build --rm \
 echo "Pushing Docker image: $USERNAME/$DIR_NAME:$TAG"
 docker push "$USERNAME/$DIR_NAME:$TAG"
 
-echo "Build and push completed for $USERNAME/$DIR_NAME:$TAG (built=$BUILT)"
+# -----------------------------
+# Update versions.json "built": true
+# -----------------------------
+VERSION_JSON="$DIRECTORY/versions.json"
+
+jq "map(if .micropython == \"$MICROPYTHON_VERSION\" and .tag == \"$TAG\" then .built = true else . end)" \
+  "$VERSION_JSON" > "$VERSION_JSON.tmp" && mv "$VERSION_JSON.tmp" "$VERSION_JSON"
+
+echo "Build and push completed for $USERNAME/$DIR_NAME:$TAG (built=true)"
