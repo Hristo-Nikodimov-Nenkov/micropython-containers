@@ -2,57 +2,57 @@
     {
         "tag": "latest",
         "micropython": "v1.26.1",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.26",
         "micropython": "v1.26.1",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.26.1",
         "micropython": "v1.26.1",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.26.0",
         "micropython": "v1.26.0",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.25",
         "micropython": "v1.25.0",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.25.0",
         "micropython": "v1.25.0",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.24",
         "micropython": "v1.24.1",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.24.1",
         "micropython": "v1.24.1",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.24.0",
         "micropython": "v1.24.0",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.23",
         "micropython": "v1.23.0",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.23.0",
         "micropython": "v1.23.0",
-        "built": false
+        "built": true
     },
     {
         "tag": "v1.22",
