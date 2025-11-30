@@ -38,10 +38,8 @@ json_obj_to_flags() {
         local value
         value=$(jq -r ".[$index][\"$key\"]" "$json_file")
 
-        if [[ "$value" == "true" ]]; then
-            flags+=" --$key"
-        elif [[ "$value" == "false" ]]; then
-            continue
+        if [[ "$value" == "true" || "$value" == "false" ]]; then
+            flags+=" --$key $value"
         else
             flags+=" --$key \"$value\""
         fi
@@ -49,6 +47,7 @@ json_obj_to_flags() {
 
     echo "$flags"
 }
+
 
 
 # ======================================================
