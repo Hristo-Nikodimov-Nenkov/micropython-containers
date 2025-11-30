@@ -76,15 +76,15 @@ BUILD_ARGS+=( --build-arg "ESP_IDF_VERSION=${ESP_IDF_VERSION}" )
 # -----------------------------
 # Build and Push
 # -----------------------------
-echo "📦 Building: $USERNAME/$DIR_NAME:$TAG"
+echo "📦 Building: $DOCKERHUB_USERNAME/$DIR_NAME:$TAG"
 echo "Build args:"
 printf '  %s\n' "${BUILD_ARGS[@]}"
 
 docker build --rm \
   "${BUILD_ARGS[@]}" \
-  -t "$USERNAME/$DIR_NAME:$TAG" \
+  -t "$DOCKERHUB_USERNAME/$DIR_NAME:$TAG" \
   "$DIRECTORY"
 
-docker push "$USERNAME/$DIR_NAME:$TAG"
+docker push "$DOCKERHUB_USERNAME/$DIR_NAME:$TAG"
 
-echo "✔ Completed: $USERNAME/$DIR_NAME:$TAG (built=$BUILT)"
+echo "✔ Completed: $DOCKERHUB_USERNAME/$DIR_NAME:$TAG (built=$BUILT)"
