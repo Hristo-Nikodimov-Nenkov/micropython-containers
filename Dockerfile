@@ -21,4 +21,4 @@ WORKDIR /var/containers
 COPY build_containers.sh /usr/lib/build_containers.sh
 RUN chmod +x /usr/lib/build_containers.sh
 
-ENTRYPOINT ["/build_containers.sh"]
+ENTRYPOINT ["/usr/lib/build_containers.sh"]

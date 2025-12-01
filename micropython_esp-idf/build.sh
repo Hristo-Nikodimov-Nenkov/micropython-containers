@@ -26,7 +26,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --esp_idf)
-      ESP_IDF_VERSION="$value"
+      ESP_IDF_VERSION="$2"
       shift 2
       ;;
     --built)
