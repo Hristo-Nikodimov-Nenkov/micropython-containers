@@ -10,9 +10,9 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
         git unzip wget curl rsync ca-certificates build-essential pkg-config \
         python3 python3-pip python3-setuptools python3-venv \
-        cmake ninja-build libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev \ 
+        cmake ninja-build libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev \
         gcc-arm-none-eabi libc6-dev linux-libc-dev \
- && rm -rf /var/lib/apt/lists/*
+&& rm -rf /var/lib/apt/lists/*
  
 WORKDIR /opt 
 RUN git clone -b ${MICROPYTHON_VERSION} \
