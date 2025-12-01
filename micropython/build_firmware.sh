@@ -86,7 +86,7 @@ echo "==========================================="
 cd "$PORT_DIR"
 
 make clean
-make submodules
+make BOARD="$BOARD" submodules
 
 if [[ -f "$MANIFEST" ]]; then
     echo "Using frozen manifest: $MANIFEST"
