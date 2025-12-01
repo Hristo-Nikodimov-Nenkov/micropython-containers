@@ -1,35 +1,28 @@
 #!/bin/bash
 set -e
 
-USERNAME="$1"
-DIRECTORY="$2"
-shift 2
-
+# -----------------------------
+# Determine service directory
+# -----------------------------
+DIRECTORY=$(pwd)
 DIR_NAME=$(basename "$DIRECTORY")
 
-# Defaults
 BUILT="false"
-
 TAG=""
 MICROPYTHON_VERSION=""
-ESP_IDF_VERSION=""
-
-BUILD_ARGS=()
 
 # -----------------------------
-# Parse all flags
+# Parse flags from CLI
 # -----------------------------
 while [[ $# -gt 0 ]]; do
   key="$1"
-  value="$2"
-
-  case "$key" in
+  case $key in
     --tag)
-      TAG="$value"
+      TAG="$2"
       shift 2
       ;;
     --micropython)
-      MICROPYTHON_VERSION="$value"
+      MICROPYTHON_VERSION="$2"
       shift 2
       ;;
     --esp_idf)
@@ -37,20 +30,15 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --built)
-      BUILT="$value"
-      shift 2
-      ;;
-    --*)
-      ARG_NAME=$(echo "${key:2}" | tr '[:lower:]' '[:upper:]')
-      BUILD_ARGS+=( --build-arg "${ARG_NAME}=${value}" )
+      BUILT="$2"
       shift 2
       ;;
     *)
-      shift
+      # Ignore unknown flags
+      shift 2
       ;;
   esac
 done
-
 # -----------------------------
 # Validate required fields
 # -----------------------------
