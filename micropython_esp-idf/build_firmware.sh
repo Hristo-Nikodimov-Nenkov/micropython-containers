@@ -55,7 +55,7 @@ else
     echo "No manifest.py found — checking if generation is needed..."
 
     modules_nonempty=false
-    if [[ -d "$MODULES_DIR" && -n "$(ls -A "$MODULES_DIR")" ]]; then
+    if [ -d "$MODULES_DIR" ] && find "$MODULES_DIR" -mindepth 1 | read; then
         modules_nonempty=true
     fi
 
