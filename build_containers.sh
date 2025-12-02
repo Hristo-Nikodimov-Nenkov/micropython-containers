@@ -8,7 +8,6 @@ WORKSPACE="/var/containers"
 
 echo "========== Starting build_containers =========="
 
-
 # ======================================================
 # Compute stable hash of build-critical files
 # ======================================================
@@ -21,7 +20,6 @@ calculate_service_hash() {
             | awk '{print $1}'
     )
 }
-
 
 # ======================================================
 # Convert JSON object to CLI flags for build.sh
@@ -48,6 +46,9 @@ json_obj_to_flags() {
     echo "$flags"
 }
 
+# ======================================================
+# Update DockerHub README
+# ======================================================
 update_dockerhub_readme() {
     local service="$1"
     local readme_path="$2"
@@ -59,23 +60,21 @@ update_dockerhub_readme() {
     fi
 
     echo ">>> Updating DockerHub README for ${repo}"
-
     local readme_text
-    readme_text=$(sed 's/"/\\"/g' "$readme_path")
+    readme_text=$(sed 's/"/\\"/g' "$readme_path" | awk '{printf "%s\\n", $0}')
 
     # Docker Hub API v2: update repository description
-    curl -s -o /dev/null -w "%{http_code}" \
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" \
         -X PATCH "https://hub.docker.com/v2/repositories/${repo}/" \
         -H "Content-Type: application/json" \
         -u "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}" \
-        -d "{\"full_description\": \"${readme_text}\"}" \
-        | { read code; 
-            if [[ "$code" == "200" ]]; then
-                echo ">>> DockerHub README updated for ${repo}"
-            else
-                echo ">>> Failed to update README (HTTP $code)"
-            fi
-          }
+        -d "{\"full_description\": \"${readme_text}\"}")
+
+    if [[ "$http_code" == "200" ]]; then
+        echo ">>> DockerHub README updated for ${repo}"
+    else
+        echo ">>> Failed to update README (HTTP $http_code)"
+    fi
 }
 
 # ======================================================
@@ -85,12 +84,10 @@ echo "========== DockerHub Login =========="
 echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 echo "========== Login successful =========="
 
-
 # ======================================================
 # Process each service
 # ======================================================
 for dir in "$WORKSPACE"/*/ ; do
-
     [[ -f "$dir/build.sh" ]] || continue
     [[ -f "$dir/versions.json" ]] || continue
 
@@ -103,7 +100,7 @@ for dir in "$WORKSPACE"/*/ ; do
     echo "-------------------------------------------------"
 
     # ----------------------------------------------
-    # Detect changes
+    # Detect changes for force rebuild
     # ----------------------------------------------
     echo ">>> Checking build file changes"
     current_hash=$(calculate_service_hash "$dir")
@@ -123,33 +120,28 @@ for dir in "$WORKSPACE"/*/ ; do
         force_rebuild=true
     fi
 
-
     # ----------------------------------------------
     # Loop through versions.json entries
     # ----------------------------------------------
     version_count=$(jq 'length' "$dir/versions.json")
 
     for i in $(seq 0 $((version_count - 1))); do
-
         flags=$(json_obj_to_flags "$dir/versions.json" "$i")
         built=$(jq -r ".[$i].built" "$dir/versions.json")
         tag=$(jq -r ".[$i].tag" "$dir/versions.json")
 
-        # CASE 1 — No rebuild needed
+        # Skip if already built
         if [[ "$force_rebuild" = false && "$built" = "true" ]]; then
             echo ">>> Skipping $service:$tag — already built"
             continue
         fi
 
-        # Determine final flags
         final_flags="$flags"
         if [[ "$force_rebuild" = true ]]; then
             final_flags="$flags --built false"
         fi
 
         echo ">>> Running build.sh for $service:$tag"
-        echo "    ./build.sh $final_flags"
-
         (
             cd "$dir"
             chmod +x ./build.sh
@@ -157,29 +149,38 @@ for dir in "$WORKSPACE"/*/ ; do
         )
 
         # ----------------------------------------------
-        # Mark built=true in versions.json (in-place)
+        # Commit changes to versions.json immediately
         # ----------------------------------------------
         jq ".[$i].built = true" "$dir/versions.json" > "$dir/versions.json.tmp"
         mv "$dir/versions.json.tmp" "$dir/versions.json"
-        git add -A .
-        git commit -m "Built $flags"        
+
+        git -C "$WORKSPACE" add "$dir/versions.json"
+        if ! git -C "$WORKSPACE" diff --cached --quiet; then
+            git -C "$WORKSPACE" commit -m "Built $service:$tag — updated versions.json"
+            git -C "$WORKSPACE" push || echo ">>> Push failed for $service:$tag"
+        else
+            echo ">>> No changes to commit for $service:$tag"
+        fi
     done
 
     # ----------------------------------------------
-    # Update service hash
+    # Update service hash (commit after all versions)
     # ----------------------------------------------
     echo "$current_hash" > "$hash_file"
+
+    git -C "$WORKSPACE" add "$hash_file"
+    if ! git -C "$WORKSPACE" diff --cached --quiet; then
+        git -C "$WORKSPACE" commit -m "Updated service hash for $service"
+        git -C "$WORKSPACE" push || echo ">>> Push failed for service hash"
+    else
+        echo ">>> No changes to commit for service hash"
+    fi
+
+    # ----------------------------------------------
+    # Update DockerHub README
+    # ----------------------------------------------
     update_dockerhub_readme "$service" "$dir/README.md"
 done
-
-# ======================================================
-# Push to remote Git repository
-# ======================================================
-echo ">>> Pushing commits to remote repo"
-(
-    cd "$WORKSPACE"
-    git push || echo ">>> No changes to push or push failed"
-)
 
 echo ""
 echo "========== All services built, pushed to DockerHub, and committed & pushed to Git =========="
