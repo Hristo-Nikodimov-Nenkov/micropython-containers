@@ -4,7 +4,6 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Required environment variables
 # ---------------------------------------------------------------------------
-: "${PORT:?ERROR: PORT must be set (example: rp2, stm32, nrf)}"
 : "${BOARD:?ERROR: BOARD must be set (example: RPI_PICO, RPI_PICO2_W)}"
 
 PROJECT_DIR="/project"
@@ -14,7 +13,7 @@ BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 
 echo "==========================================="
 echo " Building MicroPython firmware for:"
-echo " PORT  = ${PORT}"
+echo " PORT  = esp32"
 echo " BOARD = ${BOARD}"
 echo "==========================================="
 
