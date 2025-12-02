@@ -2,7 +2,6 @@ FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install required packages
 RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
     git unzip wget curl rsync ca-certificates pkg-config \
