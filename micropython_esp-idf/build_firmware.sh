@@ -10,7 +10,7 @@ PROJECT_DIR="/project"
 MICROPYTHON_DIR="/opt/micropython"
 IDF_PATH="/opt/esp-idf"
 EXPORT_SH="$IDF_PATH/export.sh"
-PORT_DIR="${MICROPY_DIR}/ports/esp32"
+PORT_DIR="${MICROPYTHON_DIR}/ports/esp32"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 
 echo "==========================================="
@@ -36,7 +36,7 @@ source "$EXPORT_SH"
 
 echo "ESP-IDF version: $(idf.py --version)"
 
-MPY_CROSS="${MICROPY_DIR}/mpy-cross"
+MPY_CROSS="${MICROPYTHON_DIR}/mpy-cross"
 if [[ ! -x "$MPY_CROSS" ]]; then
     echo "ERROR: mpy-cross not found at ${MPY_CROSS}"
     exit 4
