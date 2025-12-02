@@ -133,7 +133,8 @@ for dir in "$WORKSPACE"/*/ ; do
         # ----------------------------------------------
         jq ".[$i].built = true" "$dir/versions.json" > "$dir/versions.json.tmp"
         mv "$dir/versions.json.tmp" "$dir/versions.json"
-
+        git add -A .
+        git commit -m "Built $flags"        
     done
 
     # ----------------------------------------------
@@ -142,17 +143,6 @@ for dir in "$WORKSPACE"/*/ ; do
     echo "$current_hash" > "$hash_file"
 
 done
-
-
-# ======================================================
-# Single git commit at the end
-# ======================================================
-echo ">>> Committing all updated versions.json and service hashes"
-(
-    cd "$WORKSPACE"
-    git add */versions.json */.service_hash
-    git diff-index --quiet HEAD || git commit -m "Update built flags and service hashes after build"
-)
 
 # ======================================================
 # Push to remote Git repository
