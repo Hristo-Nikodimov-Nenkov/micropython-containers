@@ -48,7 +48,35 @@ json_obj_to_flags() {
     echo "$flags"
 }
 
+update_dockerhub_readme() {
+    local service="$1"
+    local readme_path="$2"
+    local repo="${DOCKERHUB_USERNAME}/${service}"
 
+    if [[ ! -f "$readme_path" ]]; then
+        echo ">>> No README.md found for ${service}, skipping DockerHub description update"
+        return
+    fi
+
+    echo ">>> Updating DockerHub README for ${repo}"
+
+    local readme_text
+    readme_text=$(sed 's/"/\\"/g' "$readme_path")
+
+    # Docker Hub API v2: update repository description
+    curl -s -o /dev/null -w "%{http_code}" \
+        -X PATCH "https://hub.docker.com/v2/repositories/${repo}/" \
+        -H "Content-Type: application/json" \
+        -u "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}" \
+        -d "{\"full_description\": \"${readme_text}\"}" \
+        | { read code; 
+            if [[ "$code" == "200" ]]; then
+                echo ">>> DockerHub README updated for ${repo}"
+            else
+                echo ">>> Failed to update README (HTTP $code)"
+            fi
+          }
+}
 
 # ======================================================
 # DockerHub login
@@ -141,7 +169,7 @@ for dir in "$WORKSPACE"/*/ ; do
     # Update service hash
     # ----------------------------------------------
     echo "$current_hash" > "$hash_file"
-
+    update_dockerhub_readme "$service" "$dir/README.md"
 done
 
 # ======================================================
