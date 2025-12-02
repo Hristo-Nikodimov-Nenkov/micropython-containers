@@ -7,13 +7,13 @@ ARG MICROPYTHON_VERSION=
 RUN : "${MICROPYTHON_VERSION:?MICROPYTHON_VERSION build-arg is required!}"
 RUN echo "Installing MICROPYTHON ${MICROPYTHON_VERSION}..."
 
-RUN apt update \
-&& apt install -y --no-install-recommends \
-        git unzip wget curl rsync ca-certificates pkg-config \
-        build-essential make cmake ninja-build  \
-        python3 python3-pip python3-setuptools python3-venv \
-        flex bison libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev \
-        gcc-arm-none-eabi gdb-multiarch libc6-dev libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib libusb-1.0-0-dev \
+RUN apt-get update \
+&& apt-get install -y --no-install-recommends \
+    git unzip wget curl rsync ca-certificates pkg-config \
+    build-essential make cmake ninja-build \
+    python3 python3-pip python3-setuptools python3-venv \
+    flex bison libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev \
+    gdb-multiarch libc6-dev libusb-1.0-0-dev \
 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt
