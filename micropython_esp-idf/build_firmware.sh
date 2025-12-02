@@ -13,7 +13,6 @@ BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 
 echo "==========================================="
 echo " Building MicroPython firmware for:"
-echo " PORT  = esp32"
 echo " BOARD = ${BOARD}"
 echo "==========================================="
 
@@ -26,6 +25,14 @@ if [[ ! -d "$BOARD_DIR" ]]; then
     echo "ERROR: Board not found: $BOARD_DIR"
     exit 3
 fi
+
+# -----------------------------------------------------------------------
+# Source ESP-IDF environment
+# -----------------------------------------------------------------------
+echo "Sourcing ESP-IDF environment..."
+source "$EXPORT_SH"
+
+echo "ESP-IDF version: $(idf.py --version)"
 
 MPY_CROSS="${MICROPY_DIR}/mpy-cross"
 if [[ ! -x "$MPY_CROSS" ]]; then
