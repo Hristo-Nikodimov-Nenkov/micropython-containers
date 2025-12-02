@@ -7,7 +7,9 @@ set -euo pipefail
 : "${BOARD:?ERROR: BOARD must be set (example: RPI_PICO, RPI_PICO2_W)}"
 
 PROJECT_DIR="/project"
-MICROPY_DIR="/opt/micropython"
+MICROPYTHON_DIR="/opt/micropython"
+IDF_PATH="/opt/esp-idf"
+EXPORT_SH="$IDF_PATH/export.sh"
 PORT_DIR="${MICROPY_DIR}/ports/esp32"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 
