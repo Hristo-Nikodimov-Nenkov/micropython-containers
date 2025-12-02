@@ -9,7 +9,8 @@ ARG GIT_USER_NAME="Build Containers Bot"
 ARG GIT_USER_EMAIL="buildbot@example.com"
 
 RUN git config --global user.name "$GIT_USER_NAME" && \
-    git config --global user.email "$GIT_USER_EMAIL"
+    git config --global user.email "$GIT_USER_EMAIL" \
+    && git config --global --add safe.directory /var/containers
 
 WORKDIR /var/containers
 
