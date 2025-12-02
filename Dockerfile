@@ -1,7 +1,7 @@
 FROM ubuntu:24.04
 
 RUN apt-get update
-RUN apt-get install -y --no-install-recommends git unzip wget curl rsync ca-certificates pkg-config docker-cli
+RUN apt-get install -y --no-install-recommends git unzip wget curl rsync ca-certificates pkg-config docker-cli jq
 RUN rm -rf /var/lib/apt/lists/*
 
 # Git identity (can be overridden with ARG during build)
