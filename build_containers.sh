@@ -47,42 +47,26 @@ json_obj_to_flags() {
 }
 
 # ======================================================
-# Update DockerHub README
-# ======================================================
-update_dockerhub_readme() {
-    local service="$1"
-    local readme_path="$2"
-    local repo="${DOCKERHUB_USERNAME}/${service}"
-
-    if [[ ! -f "$readme_path" ]]; then
-        echo ">>> No README.md found for ${service}, skipping DockerHub description update"
-        return
-    fi
-
-    echo ">>> Updating DockerHub README for ${repo}"
-    local readme_text
-    readme_text=$(sed 's/"/\\"/g' "$readme_path" | awk '{printf "%s\\n", $0}')
-
-    # Docker Hub API v2: update repository description
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" \
-        -X PATCH "https://hub.docker.com/v2/repositories/${repo}/" \
-        -H "Content-Type: application/json" \
-        -u "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}" \
-        -d "{\"full_description\": \"${readme_text}\"}")
-
-    if [[ "$http_code" == "200" ]]; then
-        echo ">>> DockerHub README updated for ${repo}"
-    else
-        echo ">>> Failed to update README (HTTP $http_code)"
-    fi
-}
-
-# ======================================================
 # DockerHub login
 # ======================================================
 echo "========== DockerHub Login =========="
 echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 echo "========== Login successful =========="
+
+# ======================================================
+# Exchange PAT for short-lived DockerHub Bearer token
+# ======================================================
+echo "========== Exchanging PAT for Bearer token =========="
+BEARER_TOKEN=$(curl -s -X POST \
+    -H "Content-Type: application/json" \
+    -d '{"username": "'"$DOCKERHUB_USERNAME"'", "password": "'"$DOCKERHUB_TOKEN"'"}' \
+    https://hub.docker.com/v2/users/login/ | jq -r .token)
+
+if [[ -z "$BEARER_TOKEN" || "$BEARER_TOKEN" == "null" ]]; then
+    echo ">>> Failed to obtain DockerHub Bearer token"
+    exit 1
+fi
+echo ">>> Bearer token successfully obtained"
 
 # ======================================================
 # Process each service
@@ -177,39 +161,33 @@ for dir in "$WORKSPACE"/*/ ; do
     fi
 
     # ======================================================
-    # Update DockerHub README
+    # Update DockerHub README using Bearer token
     # ======================================================
     echo "========== Updating DockerHub README =========="
 
-    # Path to your README file
     README_FILE="$WORKSPACE/README.md"
 
-    # Ensure the README exists
     if [ ! -f "$README_FILE" ]; then
         echo ">>> README file not found at $README_FILE"
         exit 1
     fi
 
-    # Encode README safely as JSON
     README_JSON=$(jq -Rs '.' < "$README_FILE")
 
-    # Repository namespace (user or org)
-    REPO_NAMESPACE="$DOCKERHUB_USERNAME"
+    # Use the repo owner as namespace
+    REPO_NAMESPACE="$DOCKERHUB_USERNAME"  # or "rav3nh01m" if that is the repo owner
     REPO_NAME="$service"
 
-    # Update README via DockerHub API using Bearer token
     HTTP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
-        -H "Authorization: Bearer $DOCKERHUB_TOKEN" \
+        -H "Authorization: Bearer $BEARER_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{\"full_description\": $README_JSON}" \
         "https://hub.docker.com/v2/repositories/$REPO_NAMESPACE/$REPO_NAME/")
 
-    # Check response
     if [ "$HTTP_RESPONSE" -eq 200 ]; then
         echo ">>> README successfully updated!"
     else
         echo ">>> Failed to update README (HTTP $HTTP_RESPONSE)"
-        echo ">>> Make sure your DOCKERHUB_TOKEN is a Personal Access Token with write access and the namespace is correct."
         exit 1
     fi
 
