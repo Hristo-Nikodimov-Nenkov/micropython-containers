@@ -95,7 +95,7 @@ else
     make BOARD="$BOARD" -j"$(nproc)"
 fi
 
-OUTPUT_DIR="$PROJECT_DIR/build"
+OUTPUT_DIR="$PROJECT_DIR/dist"
 mkdir -p "$OUTPUT_DIR"
 
 BUILD_DIR="$PORT_DIR/build-$BOARD"
