@@ -109,7 +109,9 @@ mkdir -p "$OUTPUT_DIR"
 BUILD_DIR="$PORT_DIR/build-$BOARD"
 
 if [[ -d "$BUILD_DIR" ]]; then
-    cp "$BUILD_DIR"/*.bin "$OUTPUT_DIR/" 2>/dev/null || true
+    # Copy all .bin files from BUILD_DIR with max depth 2
+    find "$BUILD_DIR" -maxdepth 2 -type f -name "*.bin" \
+        -exec cp {} "$OUTPUT_DIR/" \; 2>/dev/null || true
 else
     echo "ERROR: Build directory not found: $BUILD_DIR"
     exit 5
