@@ -184,28 +184,35 @@ for dir in "$WORKSPACE"/*/ ; do
     # Path to your README file
     README_FILE="$WORKSPACE/README.md"
 
-    # Make sure the README exists
+    # Ensure the README exists
     if [ ! -f "$README_FILE" ]; then
         echo ">>> README file not found at $README_FILE"
         exit 1
     fi
 
-    # Safely encode README content as JSON
+    # Encode README safely as JSON
     README_JSON=$(jq -Rs '.' < "$README_FILE")
 
-    # Update the README via DockerHub API
+    # Repository namespace (user or org)
+    REPO_NAMESPACE="$DOCKERHUB_USERNAME"
+    REPO_NAME="$service"
+
+    # Update README via DockerHub API using Bearer token
     HTTP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
-        -u "$DOCKERHUB_USERNAME:$DOCKERHUB_TOKEN" \
+        -H "Authorization: Bearer $DOCKERHUB_TOKEN" \
         -H "Content-Type: application/json" \
         -d "{\"full_description\": $README_JSON}" \
-        "https://hub.docker.com/v2/repositories/$DOCKERHUB_USERNAME/micropython_esp-idf/")
+        "https://hub.docker.com/v2/repositories/$REPO_NAMESPACE/$REPO_NAME/")
 
     # Check response
     if [ "$HTTP_RESPONSE" -eq 200 ]; then
         echo ">>> README successfully updated!"
     else
         echo ">>> Failed to update README (HTTP $HTTP_RESPONSE)"
+        echo ">>> Make sure your DOCKERHUB_TOKEN is a Personal Access Token with write access and the namespace is correct."
+        exit 1
     fi
+
 done
 
 echo ""
