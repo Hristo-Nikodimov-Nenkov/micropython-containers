@@ -176,10 +176,36 @@ for dir in "$WORKSPACE"/*/ ; do
         echo ">>> No changes to commit for service hash"
     fi
 
-    # ----------------------------------------------
+    # ======================================================
     # Update DockerHub README
-    # ----------------------------------------------
-    update_dockerhub_readme "$service" "$dir/README.md"
+    # ======================================================
+    echo "========== Updating DockerHub README =========="
+
+    # Path to your README file
+    README_FILE="$WORKSPACE/README.md"
+
+    # Make sure the README exists
+    if [ ! -f "$README_FILE" ]; then
+        echo ">>> README file not found at $README_FILE"
+        exit 1
+    fi
+
+    # Safely encode README content as JSON
+    README_JSON=$(jq -Rs '.' < "$README_FILE")
+
+    # Update the README via DockerHub API
+    HTTP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+        -u "$DOCKERHUB_USERNAME:$DOCKERHUB_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d "{\"full_description\": $README_JSON}" \
+        "https://hub.docker.com/v2/repositories/$DOCKERHUB_USERNAME/micropython_esp-idf/")
+
+    # Check response
+    if [ "$HTTP_RESPONSE" -eq 200 ]; then
+        echo ">>> README successfully updated!"
+    else
+        echo ">>> Failed to update README (HTTP $HTTP_RESPONSE)"
+    fi
 done
 
 echo ""
