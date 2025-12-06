@@ -3,8 +3,6 @@ when:
     - push
     - manual
 
-clone: "false"   # disable automatic cloning for all steps
-
 steps:
   build_containers:
     image: alpine:latest
