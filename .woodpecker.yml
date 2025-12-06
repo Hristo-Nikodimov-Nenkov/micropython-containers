@@ -1,13 +1,7 @@
-# .woodpecker.yml
-when:
-  event:
-    - push
-    - manual
-
 steps:
   build_containers:
-    image: docker:27.2-git
-
+    image: docker:27.2.0-dind   # instead of docker:27.2-git
+    privileged: true            # required for Docker-in-Docker
     environment:
       WORKSPACE: /var/containers
       ROOT: /var/containers
@@ -19,34 +13,15 @@ steps:
         from_secret: GIT_USER_NAME
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
-
     commands:
-      - apk add --no-cache bash jq curl git docker-cli
-
-      # Git config
-      - |
-        git config --global user.name "$GIT_USER_NAME"
-        git config --global user.email "$GIT_USER_EMAIL"
-        git config --global --add safe.directory "$WORKSPACE"
-
-      # Root services.json required
+      - apk add --no-cache bash jq curl git
+      - git config --global user.name "$GIT_USER_NAME"
+      - git config --global user.email "$GIT_USER_EMAIL"
+      - git config --global --add safe.directory "$WORKSPACE"
       - |
         SERVICES_JSON="$ROOT/services.json"
         if [ ! -f "$SERVICES_JSON" ]; then
           echo "ERROR: services.json missing at repo root"
           exit 2
         fi
-
-      # DockerHub login and token exchange
-      - |
-        echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-        BEARER_TOKEN=$(curl -s -X POST \
-          -H "Content-Type: application/json" \
-          -d '{"username": "'"$DOCKERHUB_USERNAME"'", "password": "'"$DOCKERHUB_TOKEN"'"}' \
-          https://hub.docker.com/v2/users/login/ | jq -r .token)
-
-        if [[ -z "$BEARER_TOKEN" || "$BEARER_TOKEN" == "null" ]]; then
-          echo "ERROR: Failed to get DockerHub bearer token"
-          exit 3
-        fi
-
+      - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
