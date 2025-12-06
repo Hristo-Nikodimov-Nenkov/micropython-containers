@@ -50,3 +50,32 @@ steps:
         ' "$SERVICES_JSON" | paste -sd "," -)
         export ORDERED_SERVICES
         echo "ORDERED_SERVICES=$ORDERED_SERVICES"
+
+      # Loop over repos to build
+      - |
+        IFS=',' read -ra SERVICES <<< "$ORDERED_SERVICES"
+        for dir in "${SERVICES[@]}"; do
+          cd $WORKSPACE/$dir
+
+          # Check Dockerfile
+          if [ ! -f Dockerfile" ]; then
+            echo "ERROR: Dockerfile missing in $dir"
+            exit 2
+          fi
+
+          # Check build_firmware.sh
+          if [ ! -f build_firmware.sh" ]; then
+            echo "ERROR: build_firmware.sh missing in $dir"
+            exit 3
+          fi
+
+          # Check versions.json
+          if [ ! -f versions.json" ]; then
+            echo "ERROR: versions.json missing in $dir"
+            exit 4
+          fi
+
+          echo "All required files exist for $dir"
+
+
+        done
