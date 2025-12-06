@@ -3,15 +3,13 @@ when:
     - push
     - manual
 
-workspace:
-  base: /var/containers
+clone: false   # disable automatic cloning for all steps
 
 steps:
   build_containers:
     image: alpine:latest
     environment:
-      ROOT: /var/containers
-      WORKSPACE: /var/containers
+      WORKSPACE: /var/workspace
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
@@ -23,17 +21,22 @@ steps:
     commands:
       - apk add --no-cache bash jq curl git docker-cli
 
+      # Git config
       - git config --global user.name "$GIT_USER_NAME"
       - git config --global user.email "$GIT_USER_EMAIL"
       - git config --global --add safe.directory "$WORKSPACE"
 
-      - ls -al $ROOT/src
+      # Clone repo manually into $WORKSPACE
+      - git clone --depth=1 https://github.com/Hristo-Nikodimov-Nenkov/micropython-containers.git "$WORKSPACE"
+      - cd "$WORKSPACE"
 
+      # Check services.json
       - |
-        SERVICES_JSON="$ROOT/services.json"
+        SERVICES_JSON="$WORKSPACE/services.json"
         if [ ! -f "$SERVICES_JSON" ]; then
           echo "ERROR: services.json missing at repo root"
           exit 2
         fi
 
+      # DockerHub login
       - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
