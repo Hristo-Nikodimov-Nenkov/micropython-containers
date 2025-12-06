@@ -1,3 +1,8 @@
+when:
+  event:
+    - push
+    - manual
+
 steps:
   build_containers:
     image: docker:27.2.0-dind   # instead of docker:27.2-git
