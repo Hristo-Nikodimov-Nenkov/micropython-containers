@@ -4,13 +4,16 @@ pipeline:
     image: docker:27.2-git
     shell: bash
     environment:
-      WORKSPACE: /var/containers       # where all service directories are mounted
-      ROOT: /var/containers            # root of repo (services.json here)
+      WORKSPACE: /var/containers
+      ROOT: /var/containers
       GIT_USER_NAME: "Build Containers Bot"
       GIT_USER_EMAIL: "buildbot@example.com"
     secrets:
       - DOCKERHUB_USERNAME
       - DOCKERHUB_TOKEN
+    vars: 
+      - GIT_USER_NAME
+      - GIT_USER_EMAIL
     commands:
       - apk add --no-cache bash jq curl git docker-cli
 
