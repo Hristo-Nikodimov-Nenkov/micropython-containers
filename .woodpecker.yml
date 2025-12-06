@@ -1,6 +1,10 @@
 # .woodpecker.yml
-steps:
+when:
+  event:
+    - push
+    - manual
 
+steps:
   build_containers:
     image: docker:27.2-git
 
