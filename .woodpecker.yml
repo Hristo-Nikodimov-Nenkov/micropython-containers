@@ -19,13 +19,18 @@ steps:
         from_secret: GIT_USER_EMAIL
     commands:
       - apk add --no-cache bash jq curl git
+
       - git config --global user.name "$GIT_USER_NAME"
       - git config --global user.email "$GIT_USER_EMAIL"
       - git config --global --add safe.directory "$WORKSPACE"
+
+      - ls -al $ROOT
+
       - |
         SERVICES_JSON="$ROOT/services.json"
         if [ ! -f "$SERVICES_JSON" ]; then
           echo "ERROR: services.json missing at repo root"
           exit 2
         fi
+
       - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
