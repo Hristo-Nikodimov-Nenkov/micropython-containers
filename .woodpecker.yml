@@ -3,10 +3,11 @@ when:
     - push
     - manual
 
+skip_clone: true
+
 steps:
   build_containers:
     image: alpine:latest
-    skip_clone: true
     environment:
       WORKSPACE: /var/workspace
       DOCKERHUB_USERNAME:
