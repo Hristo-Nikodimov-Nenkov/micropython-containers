@@ -3,7 +3,7 @@ when:
     - push
     - manual
 
-clone: false   # disable automatic cloning for all steps
+clone: "false"   # disable automatic cloning for all steps
 
 steps:
   build_containers:
