@@ -3,12 +3,15 @@ when:
     - push
     - manual
 
+workspace:
+  base: /var/containers
+
 steps:
   build_containers:
     image: alpine:latest
     environment:
-      WORKSPACE: /var/containers
       ROOT: /var/containers
+      WORKSPACE: /var/containers
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
@@ -18,7 +21,7 @@ steps:
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
     commands:
-      - apk add --no-cache bash jq curl git
+      - apk add --no-cache bash jq curl git docker-cli
 
       - git config --global user.name "$GIT_USER_NAME"
       - git config --global user.email "$GIT_USER_EMAIL"
