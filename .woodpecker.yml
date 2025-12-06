@@ -50,7 +50,7 @@ steps:
         ' "$SERVICES_JSON" | paste -sd "," -)
         export ORDERED_SERVICES
         echo "ORDERED_SERVICES=$ORDERED_SERVICES"
-        
+
       - |
         IFS=',' read -ra SERVICES <<< "$ORDERED_SERVICES"
         for dir in "${SERVICES[@]}"; do
