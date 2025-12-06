@@ -41,9 +41,12 @@ steps:
           exit 2
         fi
 
-      # Extract service names ordered by "order" ascending
       - |
-        ORDERED_SERVICES=$(jq -r 'sort_by(.order) | .[].name' "$SERVICES_JSON" | paste -sd "," -)
+        # Convert object to array, sort by .order, extract keys, join with comma
+        ORDERED_SERVICES=$(jq -r '
+          to_entries
+          | sort_by(.value.order)
+          | .[].key
+        ' "$SERVICES_JSON" | paste -sd "," -)
         export ORDERED_SERVICES
-
-      
+        echo "ORDERED_SERVICES=$ORDERED_SERVICES"
