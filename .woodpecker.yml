@@ -1,0 +1,183 @@
+# .woodpecker.yml
+pipeline:
+  build_containers:
+    image: docker:27.2-git
+    shell: bash
+    environment:
+      WORKSPACE: /var/containers       # where all service directories are mounted
+      ROOT: /var/containers            # root of repo (services.json here)
+      GIT_USER_NAME: "Build Containers Bot"
+      GIT_USER_EMAIL: "buildbot@example.com"
+    secrets:
+      - DOCKERHUB_USERNAME
+      - DOCKERHUB_TOKEN
+    commands:
+      - apk add --no-cache bash jq curl git docker-cli
+
+      # -------------------------------------------------
+      # Git configuration
+      # -------------------------------------------------
+      - |
+        git config --global user.name "$GIT_USER_NAME"
+        git config --global user.email "$GIT_USER_EMAIL"
+        git config --global --add safe.directory "$WORKSPACE"
+
+      # -------------------------------------------------
+      # Check root services.json
+      # -------------------------------------------------
+      - |
+        SERVICES_JSON="$ROOT/services.json"
+        if [ ! -f "$SERVICES_JSON" ]; then
+          echo ">>> ERROR: services.json not found at root ($SERVICES_JSON)" >&2
+          exit 2
+        fi
+
+      # -------------------------------------------------
+      # DockerHub login & obtain Bearer token
+      # -------------------------------------------------
+      - |
+        echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+        BEARER_TOKEN=$(curl -s -X POST \
+          -H "Content-Type: application/json" \
+          -d '{"username": "'"$DOCKERHUB_USERNAME"'", "password": "'"$DOCKERHUB_TOKEN"'"}' \
+          https://hub.docker.com/v2/users/login/ | jq -r .token)
+        if [[ -z "$BEARER_TOKEN" || "$BEARER_TOKEN" == "null" ]]; then
+          echo ">>> Failed to obtain DockerHub Bearer token"
+          exit 1
+        fi
+
+      # -------------------------------------------------
+      # Functions
+      # -------------------------------------------------
+      - |
+        check_required_files() {
+          local dir="$1"
+          [[ -f "$dir/Dockerfile" ]] || { echo ">>> ERROR: Dockerfile missing in $dir" >&2; exit 3; }
+          [[ -f "$dir/build_firmware.sh" ]] || { echo ">>> ERROR: build_firmware.sh missing in $dir" >&2; exit 4; }
+          [[ -f "$dir/versions.json" ]] || { echo ">>> ERROR: versions.json missing in $dir" >&2; exit 5; }
+        }
+
+        get_order() {
+          local dir="$1"
+          jq -r --arg service "$(basename "$dir")" '.[$service].order // 1000' "$SERVICES_JSON"
+        }
+
+        compute_service_hash() {
+          local dir="$1"
+          sha256sum "$dir/Dockerfile" "$dir/build_firmware.sh" "$dir/versions.json" 2>/dev/null \
+            | sha256sum \
+            | awk '{print $1}'
+        }
+
+      # -------------------------------------------------
+      # Discover service directories and sort by order
+      # -------------------------------------------------
+      - |
+        declare -a dir_list
+        for dir in "$WORKSPACE"/*/ ; do
+          [[ -d "$dir" ]] || continue
+          check_required_files "$dir"
+          order=$(get_order "$dir")
+          dir_list+=("$order:$dir")
+        done
+        IFS=$'\n' sorted_dirs=($(sort -n <<<"${dir_list[*]}"))
+        unset IFS
+
+      # -------------------------------------------------
+      # Build loop
+      # -------------------------------------------------
+      - |
+        for entry in "${sorted_dirs[@]}"; do
+          order="${entry%%:*}"
+          dir="${entry#*:}"
+          service=$(basename "$dir")
+
+          echo ""
+          echo "-------------------------------------------------"
+          echo "SERVICE: $service (order: $order)"
+          echo "-------------------------------------------------"
+
+          current_hash=$(compute_service_hash "$dir")
+          hash_file="$dir/.service_hash"
+          force_rebuild=false
+
+          if [[ -f "$hash_file" ]]; then
+            previous_hash=$(cat "$hash_file")
+            [[ "$current_hash" != "$previous_hash" ]] && force_rebuild=true || echo ">>> No changes detected"
+          else
+            force_rebuild=true
+          fi
+
+          version_count=$(jq 'length' "$dir/versions.json")
+          for i in $(seq 0 $((version_count - 1))); do
+            tag=$(jq -r ".[$i].tag" "$dir/versions.json")
+            built=$(jq -r ".[$i].built" "$dir/versions.json")
+
+            if [[ "$built" == "true" && "$force_rebuild" == false ]]; then
+              echo ">>> Skipping $service:$tag — already built"
+              continue
+            fi
+
+            IMAGE_NAME="${DOCKERHUB_USERNAME}/${service}:${tag}"
+            echo ">>> Building Docker image: $IMAGE_NAME"
+            docker build -t "$IMAGE_NAME" "$dir"
+
+            echo ">>> Pushing Docker image: $IMAGE_NAME"
+            docker push "$IMAGE_NAME"
+
+            # Update versions.json and commit per tag
+            jq ".[$i].built = true" "$dir/versions.json" > "$dir/versions.json.tmp"
+            mv "$dir/versions.json.tmp" "$dir/versions.json"
+
+            git -C "$WORKSPACE" add "$dir/versions.json"
+            if ! git -C "$WORKSPACE" diff --cached --quiet; then
+              git -C "$WORKSPACE" commit -m "Built $service:$tag — updated versions.json"
+            else
+              echo ">>> No changes to commit for $service:$tag"
+            fi
+          done
+
+          # Update service hash and commit if changed
+          echo "$current_hash" > "$hash_file"
+          git -C "$WORKSPACE" add "$hash_file"
+          if ! git -C "$WORKSPACE" diff --cached --quiet; then
+            git -C "$WORKSPACE" commit -m "Updated service hash for $service"
+          else
+            echo ">>> No changes to commit for service hash"
+          fi
+        done
+
+      # -------------------------------------------------
+      # Final push of all commits
+      # -------------------------------------------------
+      - |
+        git -C "$WORKSPACE" push || echo ">>> Final push failed"
+
+      # -------------------------------------------------
+      # Update DockerHub READMEs after all builds and pushes
+      # -------------------------------------------------
+      - |
+        for dir in "$WORKSPACE"/*/ ; do
+          service=$(basename "$dir")
+          README_FILE="$dir/README.md"
+          if [ ! -f "$README_FILE" ]; then
+            echo ">>> README.md not found for $service — skipping"
+            continue
+          fi
+
+          README_JSON=$(jq -Rs '.' < "$README_FILE")
+          REPO_NAMESPACE="$DOCKERHUB_USERNAME"
+          REPO_NAME="$service"
+
+          HTTP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+            -H "Authorization: Bearer $BEARER_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"full_description\": $README_JSON}" \
+            "https://hub.docker.com/v2/repositories/$REPO_NAMESPACE/$REPO_NAME/")
+
+          if [ "$HTTP_RESPONSE" -eq 200 ]; then
+            echo ">>> README successfully updated for $service"
+          else
+            echo ">>> Failed to update README for $service (HTTP $HTTP_RESPONSE)"
+          fi
+        done
