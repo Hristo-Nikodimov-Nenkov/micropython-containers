@@ -1,0 +1,8 @@
+{
+  "micropython": {
+    "order": 1
+  },
+  "micropython_esp-idf": {
+    "order": 10
+  }
+}
