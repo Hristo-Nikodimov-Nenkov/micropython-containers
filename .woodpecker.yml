@@ -94,8 +94,9 @@ steps:
             else
                 FULL_SERVICE_REBUILD=true
             fi
-
             export FULL_SERVICE_REBUILD
+        
+            echo $FULL_SERVICE_REBUILD
         }
 
         # Iterate services
