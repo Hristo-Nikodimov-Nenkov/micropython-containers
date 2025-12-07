@@ -41,33 +41,40 @@ steps:
           exit 2
         fi      
 
-#      - |
-#        OLDIFS="$IFS"
-#        IFS=','
-#
-#        for dir in $ORDERED_SERVICES; do
-#          SERVICE_PATH="$WORKSPACE/$dir"
-#
-#          check_required_files(){
-#            # Check Dockerfile
-#            if [ ! -f "$SERVICE_PATH/Dockerfile" ]; then
-#              echo "ERROR: Dockerfile missing in $dir"
-#              exit 2
-#            fi
-#
-#            # Check build_firmware.sh
-#            if [ ! -f "$SERVICE_PATH/build_firmware.sh" ]; then
-#              echo "ERROR: build_firmware.sh missing in $dir"
-#              exit 3
-#            fi
-#
-#            # Check versions.json
-#            if [ ! -f "$SERVICE_PATH/versions.json" ]; then
-#              echo "ERROR: versions.json missing in $dir"
-#              exit 4
-#            fi
-#            }
-#
-#            check_required_files($SERVICE_PATH)
-#            echo "All required files exist for $dir"
-#        done
+      - |
+        OLDIFS="$IFS"
+        IFS=','
+        
+        check_required_files() {
+            SERVICE_PATH="$1"
+            dir="$2"
+        
+            # Check Dockerfile
+            if [ ! -f "$SERVICE_PATH/Dockerfile" ]; then
+                echo "ERROR: Dockerfile missing in $dir"
+                exit 2
+            fi
+        
+            # Check build_firmware.sh
+            if [ ! -f "$SERVICE_PATH/build_firmware.sh" ]; then
+                echo "ERROR: build_firmware.sh missing in $dir"
+                exit 3
+            fi
+        
+            # Check versions.json
+            if [ ! -f "$SERVICE_PATH/versions.json" ]; then
+                echo "ERROR: versions.json missing in $dir"
+                exit 4
+            fi
+        }
+        
+        # Iterate services
+        for dir in $ORDERED_SERVICES; do
+            SERVICE_PATH="$WORKSPACE/$dir"
+        
+            check_required_files "$SERVICE_PATH" "$dir"
+            echo "All required files exist for $dir"
+        done
+        
+        # Restore IFS
+        IFS="$OLDIFS"
