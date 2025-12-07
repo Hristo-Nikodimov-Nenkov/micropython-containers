@@ -8,7 +8,6 @@ skip_clone: true
 steps:
   setup_container:
     image: alpine:latest
-    shell: bash
     environment:
       WORKSPACE: /var/workspace
       DOCKERHUB_USERNAME:
