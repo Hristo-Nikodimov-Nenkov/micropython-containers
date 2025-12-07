@@ -8,6 +8,7 @@ skip_clone: true
 steps:
   setup_container:
     image: alpine:latest
+    shell: bash
     environment:
       WORKSPACE: /var/workspace
       DOCKERHUB_USERNAME:
@@ -35,16 +36,11 @@ steps:
 
       # Check services.json
       - |
-        check_services(){
-          SERVICES_JSON="$WORKSPACE/services.json"
-          if [ ! -f "$SERVICES_JSON" ]; then
-            echo "ERROR: services.json missing at repo root"
-            exit 2
-          fi      
-        }
-
-        check_services()
-
+        SERVICES_JSON="$WORKSPACE/services.json"
+        if [ ! -f "$SERVICES_JSON" ]; then
+          echo "ERROR: services.json missing at repo root"
+          exit 2
+        fi      
 
       - |
         OLDIFS="$IFS"
