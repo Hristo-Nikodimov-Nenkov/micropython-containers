@@ -44,37 +44,69 @@ steps:
       - |
         OLDIFS="$IFS"
         IFS=','
-        
+
+
         check_required_files() {
             SERVICE_PATH="$1"
-            dir="$2"
-        
+
             # Check Dockerfile
             if [ ! -f "$SERVICE_PATH/Dockerfile" ]; then
-                echo "ERROR: Dockerfile missing in $dir"
+                echo "ERROR: Dockerfile missing in $SERVICE_PATH"
                 exit 2
             fi
-        
+
             # Check build_firmware.sh
             if [ ! -f "$SERVICE_PATH/build_firmware.sh" ]; then
-                echo "ERROR: build_firmware.sh missing in $dir"
+                echo "ERROR: build_firmware.sh missing in $SERVICE_PATH"
                 exit 3
             fi
-        
+
             # Check versions.json
             if [ ! -f "$SERVICE_PATH/versions.json" ]; then
-                echo "ERROR: versions.json missing in $dir"
+                echo "ERROR: versions.json missing in $SERVICE_PATH"
                 exit 4
             fi
         }
-        
+
+        # Check if directory has .service_hash
+        check_service_hash() {
+            HASH_FILE="$SERVICE_PATH/.service_hash"
+
+            # If .service_hash is missing → full rebuild
+            if [ ! -f "$HASH_FILE" ]; then
+                FULL_SERVICE_REBUILD=true
+                export FULL_SERVICE_REBUILD
+                return
+            fi
+
+            # Compute combined SHA-256 digest of required files
+            CURRENT_HASH=$(cat "$SERVICE_PATH/Dockerfile" \
+                                "$SERVICE_PATH/build_firmware.sh" \
+                                "$SERVICE_PATH/versions.json" \
+                           | sha256sum | awk '{print $1}')
+
+            # Read stored hash
+            STORED_HASH=$(cat "$HASH_FILE")
+
+            # Compare hashes
+            if [ "$CURRENT_HASH" = "$STORED_HASH" ]; then
+                FULL_SERVICE_REBUILD=false
+            else
+                FULL_SERVICE_REBUILD=true
+            fi
+
+            export FULL_SERVICE_REBUILD
+        }
+
         # Iterate services
         for dir in $ORDERED_SERVICES; do
             SERVICE_PATH="$WORKSPACE/$dir"
-        
+
             check_required_files "$SERVICE_PATH" "$dir"
             echo "All required files exist for $dir"
+
+            check_service_hash "$SERVICE_PATH"
         done
-        
+
         # Restore IFS
         IFS="$OLDIFS"
