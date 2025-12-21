@@ -1,8 +1,32 @@
 [
   {
-    "micropython": "v1.26.1",
-    "esp_idf": "v5.4.2",
+    "micropython": "v1.27.0",
+    "esp_idf": "v5.5.1",
     "tag": "latest",
+    "built": true
+  },
+  {
+    "micropython": "v1.27.0",
+    "esp_idf": "v5.5.1",
+    "tag": "v1.27_v5.5",
+    "built": true
+  },
+  {
+    "micropython": "v1.27.0",
+    "esp_idf": "v5.5.1",
+    "tag": "v1.27.0_v5.5",
+    "built": true
+  },
+  {
+    "micropython": "v1.27.0",
+    "esp_idf": "v5.5.1",
+    "tag": "v1.27_v5.5.1",
+    "built": true
+  },
+  {
+    "micropython": "v1.27.0",
+    "esp_idf": "v5.5.1",
+    "tag": "v1.27.0_v5.5.1",
     "built": true
   },
   {
