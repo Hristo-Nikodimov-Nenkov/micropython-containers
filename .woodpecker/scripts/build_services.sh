@@ -1,43 +1,45 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+WORKSPACE="${CI_WORKSPACE:-$(pwd)}"
+
 IFS=','
 
 for dir in $ORDERED_SERVICES; do
-  service_path="$WORKSPACE/$dir"
-  version_file="$service_path/versions.json"
+  SERVICE_PATH="$WORKSPACE/$dir"
+  VERSION_FILE="$SERVICE_PATH/versions.json"
 
-  .woodpecker/scripts/validate_service_files.sh "$service_path"
+  .woodpecker/scripts/05_validate_service_files.sh "$SERVICE_PATH"
 
   FULL_SERVICE_REBUILD="$(
-    .woodpecker/scripts/service_hash.sh "$service_path"
+    .woodpecker/scripts/05_service_hash.sh "$SERVICE_PATH"
   )"
 
   if [[ "$FULL_SERVICE_REBUILD" == "true" ]]; then
-    echo "[INFO] Full rebuild for $service_path"
-    json_objects=$(jq -c '.[]' "$version_file")
+    echo "[INFO] Full rebuild for $SERVICE_PATH"
+    JSON_OBJECTS=$(jq -c '.[]' "$VERSION_FILE")
   else
-    echo "[INFO] Partial rebuild for $service_path"
-    json_objects=$(jq -c '.[] | select(.built == false)' "$version_file")
+    echo "[INFO] Partial rebuild for $SERVICE_PATH"
+    JSON_OBJECTS=$(jq -c '.[] | select(.built == false)' "$VERSION_FILE")
   fi
 
-  if [[ -z "$json_objects" ]]; then
-    echo "[INFO] Nothing to rebuild in $service_path"
+  if [[ -z "$JSON_OBJECTS" ]]; then
+    echo "[INFO] Nothing to rebuild in $SERVICE_PATH"
     continue
   fi
 
-  while read -r obj; do
+  while read -r OBJ; do
     (
-      flags=$(jq -r '
+      FLAGS=$(jq -r '
         to_entries[] |
         "--" + .key + " " + (.value|tostring)
-      ' <<<"$obj")
+      ' <<<"$OBJ")
 
       # shellcheck disable=SC2086
-      bash "$service_path/build.sh" "$service_path" $flags
+      bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" $FLAGS
     ) &
-  done <<<"$json_objects"
+  done <<<"$JSON_OBJECTS"
 
   wait
-  echo "[INFO] Builds finished for $service_path"
+  echo "[INFO] Builds finished for $SERVICE_PATH"
 done

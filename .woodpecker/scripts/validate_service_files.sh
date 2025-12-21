@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-service_path="${1:?service_path required}"
+SERVICE_PATH="${1:?Service path is required}"
 
-[[ -f "$service_path/Dockerfile" ]] || {
-  echo "ERROR: Dockerfile missing in $service_path"
+[[ -f "$SERVICE_PATH/Dockerfile" ]] || {
+  echo "ERROR: Dockerfile missing in $SERVICE_PATH"
   exit 2
 }
 
-[[ -f "$service_path/build_firmware.sh" ]] || {
-  echo "ERROR: build_firmware.sh missing in $service_path"
+[[ -f "$SERVICE_PATH/build_firmware.sh" ]] || {
+  echo "ERROR: build_firmware.sh missing in $SERVICE_PATH"
   exit 3
 }
 
-[[ -f "$service_path/versions.json" ]] || {
-  echo "ERROR: versions.json missing in $service_path"
+[[ -f "$SERVICE_PATH/versions.json" ]] || {
+  echo "ERROR: versions.json missing in $SERVICE_PATH"
   exit 4
 }
 
-echo "[OK] Required files present in $service_path"
+echo "[OK] Required files present in $SERVICE_PATH"

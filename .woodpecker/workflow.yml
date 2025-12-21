@@ -3,13 +3,10 @@ when:
     - push
     - manual
 
-skip_clone: true
-
 steps:
   setup_container:
     image: alpine:latest
     environment:
-      WORKSPACE: /var/workspace
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
@@ -19,15 +16,14 @@ steps:
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
     commands:
-      # Base tools
       - apk add --no-cache bash jq curl git docker-cli
 
-      # Make scripts executable
+      # Change directory to the repo root (Woodpecker workspace)
+      - cd "$CI_WORKSPACE"
+
       - chmod +x .woodpecker/scripts/*.sh
 
-      # Run pipeline
       - .woodpecker/scripts/git_setup.sh
-      - .woodpecker/scripts/clone_repo.sh
       - .woodpecker/scripts/docker_login.sh
       - .woodpecker/scripts/validate_repo.sh
       - .woodpecker/scripts/build_services.sh

@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-service_path="${1:?service_path required}"
-hash_file="$service_path/.service_hash"
+SERVICE_PATH="${1:?Service path is required}"
+HASH_FILE="$SERVICE_PATH/.service_hash"
 
-if [[ ! -f "$hash_file" ]]; then
+if [[ ! -f "$HASH_FILE" ]]; then
   echo "true"
   exit 0
 fi
 
-current_hash=$(
+CURRENT_HASH=$(
   cat \
-    "$service_path/Dockerfile" \
-    "$service_path/build_firmware.sh" \
-    "$service_path/versions.json" \
+    "$SERVICE_PATH/Dockerfile" \
+    "$SERVICE_PATH/build_firmware.sh" \
+    "$SERVICE_PATH/versions.json" \
     | sha256sum | awk '{print $1}'
 )
 
-stored_hash="$(<"$hash_file")"
+STORED_HASH=$(<"$HASH_FILE")
 
-if [[ "$current_hash" == "$stored_hash" ]]; then
+if [[ "$CURRENT_HASH" == "$STORED_HASH" ]]; then
   echo "false"
 else
   echo "true"
