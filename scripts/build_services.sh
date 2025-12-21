@@ -61,7 +61,7 @@ for dir in "${SERVICES[@]}"; do
     echo
 
     # Run build.sh synchronously
-    bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS_ARRAY[@]}"
+    bash -x "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS_ARRAY[@]}"
 
   done <<<"$JSON_OBJECTS"
 
