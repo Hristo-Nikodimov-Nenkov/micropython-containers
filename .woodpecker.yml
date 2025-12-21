@@ -5,7 +5,7 @@ when:
 
 steps:
   setup_container:
-    image: alpine:latest
+    image: docker:latest
     environment:
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
