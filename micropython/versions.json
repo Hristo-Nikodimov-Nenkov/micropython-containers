@@ -1,7 +1,17 @@
 [
   {
     "tag": "latest",
-    "micropython": "v1.26.1",
+    "micropython": "v1.27.0",
+    "built": true
+  },
+  {
+    "tag": "1.27",
+    "micropython": "v1.27.0",
+    "built": true
+  },
+  {
+    "tag": "1.27.0",
+    "micropython": "v1.27.0",
     "built": true
   },
   {
