@@ -55,22 +55,25 @@ for dir in $ORDERED_SERVICES; do
   # -----------------------------
   mapfile -t JSON_ARRAY < <(jq -c '.[]' "$VERSION_FILE")
 
-  for OBJ in "${JSON_ARRAY[@]}"; do
-    FLAGS_ARRAY=()
-    while IFS="=" read -r key value; do
-      FLAGS_ARRAY+=( "--$key" "$value" )
-    done < <(jq -r 'to_entries[] | "\(.key)=\(.value)"' <<<"$OBJ")
+  while read -r OBJ; do
+      # Build flags properly as separate array elements
+      FLAGS_ARRAY=()
+      while IFS=" " read -r key value; do
+          FLAGS_ARRAY+=( "--$key" "$value" )
+      done < <(jq -r 'to_entries[] | "\(.key) \(.value|tostring)"' <<<"$OBJ")
+  
+      # Append --built false if full rebuild
+      if [[ "$FULL_SERVICE_REBUILD" == "true" ]]; then
+          FLAGS_ARRAY+=( "--built" "false" )
+      fi
+  
+      # Debug
+      echo "[DEBUG] Running: bash $SERVICE_PATH/build.sh $SERVICE_PATH ${FLAGS_ARRAY[*]}"
+  
+      # Run build.sh
+      bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS_ARRAY[@]}" || exit 59
+  done <<<"$JSON_OBJECTS"
 
-    # Add extra --built false if full rebuild
-    if [[ "$FULL_SERVICE_REBUILD" == "true" ]]; then
-      FLAGS_ARRAY+=( "--built" "false" )
-    fi
-
-    # Debug print
-    echo "[DEBUG] Running: bash $SERVICE_PATH/build.sh $SERVICE_PATH ${FLAGS_ARRAY[*]}"
-
-    bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS_ARRAY[@]}" || exit 59
-  done
 
 
   # Wait for all parallel jobs
