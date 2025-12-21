@@ -99,15 +99,74 @@ steps:
             echo $FULL_SERVICE_REBUILD
         }
 
-        # Iterate services
-        for dir in $ORDERED_SERVICES; do
-            SERVICE_PATH="$WORKSPACE/$dir"
+        get_services() {
+          # Iterate services
+          for dir in $ORDERED_SERVICES; do
+              SERVICE_PATH="$WORKSPACE/$dir"
 
-            check_required_files "$SERVICE_PATH" "$dir"
-            echo "All required files exist for $dir"
+              check_required_files "$SERVICE_PATH" "$dir"
+              echo "All required files exist for $dir"
 
-            check_service_hash "$SERVICE_PATH"
-        done
+              check_service_hash "$SERVICE_PATH"
+          done
+        }
 
-        # Restore IFS
-        IFS="$OLDIFS"
+        run_build() {
+            SERVICE_PATH="$1"
+            VERSION_FILE="$SERVICE_PATH/versions.json"
+
+            if ! command -v jq >/dev/null 2>&1; then
+                echo "ERROR: jq is required but not installed"
+                exit 40
+            fi
+
+            # -----------------------------------------------------
+            # 1. Synchronous: prepare JSON for each object to build
+            # -----------------------------------------------------
+            if [ "$FULL_SERVICE_REBUILD" = "true" ]; then
+                echo "[INFO] Full rebuild for $SERVICE_PATH"
+
+                JSON_OBJECTS=$(jq -c '.[]' "$VERSION_FILE")
+            else
+                echo "[INFO] Partial rebuild for $SERVICE_PATH"
+
+                JSON_OBJECTS=$(jq -c '.[] | select(.built == false)' "$VERSION_FILE")
+            fi
+
+            # No objects to build
+            [ -z "$JSON_OBJECTS" ] && {
+                echo "[INFO] Nothing to rebuild in $SERVICE_PATH"
+                return
+            }
+
+            # -----------------------------------------------------
+            # 2. Loop JSON objects and spawn parallel builds
+            # -----------------------------------------------------
+            echo "$JSON_OBJECTS" | while IFS= read -r OBJ; do
+
+                (
+                    # Convert object into flags:
+                    # For every key/value pair → produce: --key value
+                    FLAGS=$(printf '%s' "$OBJ" | jq -r '
+                        to_entries[] |
+                        "--" + .key + " " + (.value|tostring)
+                    ')
+
+                    echo "[PARALLEL] Running build.sh with flags:"
+                    echo "  $FLAGS"
+
+                    # Run build.sh with all flags
+                    # Convert flags into proper args
+                    set -- $FLAGS
+
+                    sh "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "$@"
+                ) &
+
+            done
+
+            # -----------------------------------------------------
+            # 3. Wait for all parallel jobs
+            # -----------------------------------------------------
+            wait
+            echo "[INFO] All parallel builds finished for $SERVICE_PATH"
+        }
