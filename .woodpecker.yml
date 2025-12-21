@@ -6,7 +6,7 @@ when:
 steps:
   setup_container:
     image: docker:latest
-    user: root
+    user: docker
     environment:
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
