@@ -4,7 +4,8 @@ set -e
 # -----------------------------
 # Determine service directory
 # -----------------------------
-DIRECTORY=$(pwd)
+DIRECTORY="$1"
+shift
 DIR_NAME=$(basename "$DIRECTORY")
 
 BUILT="false"
