@@ -21,9 +21,9 @@ steps:
       # Change directory to the repo root (Woodpecker workspace)
       - cd "$CI_WORKSPACE"
 
-      - chmod +x $CI_WORKSPACE/.woodpecker/scripts/*.sh
+      - chmod +x $CI_WORKSPACE/scripts/*.sh
 
-      - $CI_WORKSPACE/.woodpecker/scripts/git_setup.sh
-      - $CI_WORKSPACE/.woodpecker/scripts/docker_login.sh
-      - $CI_WORKSPACE/.woodpecker/scripts/validate_repo.sh
-      - $CI_WORKSPACE/.woodpecker/scripts/build_services.sh
+      - $CI_WORKSPACE/scripts/git_setup.sh
+      - $CI_WORKSPACE/scripts/docker_login.sh
+      - $CI_WORKSPACE/scripts/validate_repo.sh
+      - $CI_WORKSPACE/scripts/build_services.sh
