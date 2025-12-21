@@ -19,11 +19,11 @@ steps:
       - apk add --no-cache bash jq curl git docker-cli
 
       # Change directory to the repo root (Woodpecker workspace)
-#      - cd "$CI_WORKSPACE"
-#
-#      - chmod +x .woodpecker/scripts/*.sh
-#
-#      - .woodpecker/scripts/git_setup.sh
-#      - .woodpecker/scripts/docker_login.sh
-#      - .woodpecker/scripts/validate_repo.sh
-#      - .woodpecker/scripts/build_services.sh
+      - cd "$CI_WORKSPACE"
+
+      - chmod +x $CI_WORKSPACE/.woodpecker/scripts/*.sh
+
+      - $CI_WORKSPACE/.woodpecker/scripts/git_setup.sh
+      - $CI_WORKSPACE/.woodpecker/scripts/docker_login.sh
+      - $CI_WORKSPACE/.woodpecker/scripts/validate_repo.sh
+      - $CI_WORKSPACE/.woodpecker/scripts/build_services.sh
