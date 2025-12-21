@@ -43,30 +43,27 @@ for dir in "${SERVICES[@]}"; do
   fi
 
   while IFS= read -r OBJ; do
-    (
-      # Convert JSON object to array of arguments: --key value
-      readarray -t FLAGS_ARRAY < <(
-        jq -r 'to_entries | map("--"+.key, (.value|tostring)) | .[]' <<<"$OBJ"
-      )
+    # Convert JSON object to array of arguments: --key value
+    readarray -t FLAGS_ARRAY < <(
+      jq -r 'to_entries | map("--"+.key, (.value|tostring)) | .[]' <<<"$OBJ"
+    )
 
-      # Append --built false for full rebuilds
-      if [[ "$FULL_SERVICE_REBUILD" == "true" ]]; then
-        FLAGS_ARRAY+=("--built" "false")
-      fi
+    # Append --built false for full rebuilds
+    if [[ "$FULL_SERVICE_REBUILD" == "true" ]]; then
+      FLAGS_ARRAY+=("--built" "false")
+    fi
 
-      # Print debug info
-      printf '[DEBUG] Running: bash %s/build.sh %s' "$SERVICE_PATH" "$SERVICE_PATH"
-      for arg in "${FLAGS_ARRAY[@]}"; do
-        printf ' %q' "$arg"
-      done
-      echo
+    # Print debug info
+    printf '[DEBUG] Running: bash %s/build.sh %s' "$SERVICE_PATH" "$SERVICE_PATH"
+    for arg in "${FLAGS_ARRAY[@]}"; do
+      printf ' %q' "$arg"
+    done
+    echo
 
-      # Run build.sh with proper arguments
-      bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS_ARRAY[@]}"
-    ) &
+    # Run build.sh synchronously
+    bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS_ARRAY[@]}"
+
   done <<<"$JSON_OBJECTS"
 
-  # Wait for all background builds to finish
-  wait
   echo "[INFO] Builds finished for $SERVICE_PATH"
 done
