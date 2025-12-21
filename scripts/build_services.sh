@@ -41,8 +41,10 @@ for dir in $ORDERED_SERVICES; do
 
   while read -r OBJ; do
     (
-      FLAGS=$(jq -r 'to_entries[] | "--" + .key + " " + (.value|tostring)' <<<"$OBJ") || exit 58
-      bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" $FLAGS || exit 59
+      mapfile -t FLAGS_ARRAY < <(
+        jq -r 'to_entries[] | "--" + .key + " " + (.value|tostring)' <<<"$OBJ"
+      )
+      bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS_ARRAY[@]}"
     ) &
   done <<<"$JSON_OBJECTS"
 
