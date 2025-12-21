@@ -22,9 +22,9 @@ for dir in $ORDERED_SERVICES; do
   SERVICE_PATH="$WORKSPACE/$dir"
   VERSION_FILE="$SERVICE_PATH/versions.json"
 
-  bash "$WORKSPACE/scripts/05_validate_service_files.sh" "$SERVICE_PATH" || exit 54
+  bash "$WORKSPACE/scripts/validate_service_files.sh" "$SERVICE_PATH" || exit 54
 
-  FULL_SERVICE_REBUILD=$(bash "$WORKSPACE/scripts/05_service_hash.sh" "$SERVICE_PATH") || exit 55
+  FULL_SERVICE_REBUILD=$(bash "$WORKSPACE/scripts/service_hash.sh" "$SERVICE_PATH") || exit 55
 
   if [[ "$FULL_SERVICE_REBUILD" == "true" ]]; then
     echo "[INFO] Full rebuild for $SERVICE_PATH"
