@@ -51,11 +51,15 @@ for dir in $ORDERED_SERVICES; do
       mapfile -t FLAGS_ARRAY < <(
         jq -r 'to_entries[] | "--" + .key + " " + (.value|tostring)' <<<"$OBJ"
       ) || exit 58
-
+  
+      # Print the command that will be run
+      echo "[DEBUG] Running: bash $SERVICE_PATH/build.sh $SERVICE_PATH ${FLAGS_ARRAY[*]}"
+  
       # Call build.sh with correct arguments
       bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS_ARRAY[@]}" || exit 59
     ) &
   done
+
 
   # Wait for all parallel builds to finish
   wait
