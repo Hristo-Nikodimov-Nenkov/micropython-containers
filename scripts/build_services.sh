@@ -41,15 +41,22 @@ for dir in $ORDERED_SERVICES; do
 
   while read -r OBJ; do
     (
-      # Correct mapping: produce two elements per key/value for proper Bash args
-      FLAGS_ARRAY=($(jq -r 'to_entries | map("--"+.key, (.value|tostring)) | .[]' <<<"$OBJ"))
-
+      # Produce array: each key/value becomes two elements
+      FLAGS_ARRAY=($(jq -r 'to_entries | map("--"+.key, (.value|tostring)) | .[]' <<<"$OBJ" | tr -d '\n'))
+  
       # Append --built false if full rebuild
       if [[ "$FULL_SERVICE_REBUILD" == "true" ]]; then
         FLAGS_ARRAY+=("--built" "false")
       fi
-
-      echo "[DEBUG] Running: bash $SERVICE_PATH/build.sh $SERVICE_PATH ${FLAGS_ARRAY[*]}"
+  
+      # Print debug safely: join with space explicitly
+      printf '[DEBUG] Running: bash %s/build.sh %s' "$SERVICE_PATH" "$SERVICE_PATH"
+      for arg in "${FLAGS_ARRAY[@]}"; do
+        printf ' %q' "$arg"
+      done
+      echo
+  
+      # Call build.sh with proper argument array
       bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS_ARRAY[@]}"
     ) &
   done <<<"$JSON_OBJECTS"
