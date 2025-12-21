@@ -11,11 +11,6 @@ fi
 
 ORDERED_SERVICES=$(jq -r 'keys | join(",")' "$SERVICES_JSON") || exit 52
 
-if [[ -z "$ORDERED_SERVICES" ]]; then
-  echo "ERROR: No services found in $SERVICES_JSON"
-  exit 53
-fi
-
 IFS=','
 
 for dir in $ORDERED_SERVICES; do
@@ -26,39 +21,33 @@ for dir in $ORDERED_SERVICES; do
 
   FULL_SERVICE_REBUILD=$(bash "$WORKSPACE/scripts/service_hash.sh" "$SERVICE_PATH") || exit 55
 
-  # Safely get JSON objects
   if [[ "$FULL_SERVICE_REBUILD" == "true" ]]; then
     echo "[INFO] Full rebuild for $SERVICE_PATH"
-    JSON_OBJECTS=$(jq -c '.[]' "$VERSION_FILE" 2>/dev/null || true)
+    JSON_OBJECTS=$(jq -c '.[]' "$VERSION_FILE") || true
   else
     echo "[INFO] Partial rebuild for $SERVICE_PATH"
-    JSON_OBJECTS=$(jq -c '.[] | select(.built == false)' "$VERSION_FILE" 2>/dev/null || true)
+    JSON_OBJECTS=$(jq -c '.[] | select(.built == false)' "$VERSION_FILE") || true
   fi
 
-  # Skip if empty
   if [[ -z "$JSON_OBJECTS" ]]; then
     echo "[INFO] Nothing to rebuild in $SERVICE_PATH"
     continue
   fi
 
-  # Loop through JSON objects
   while read -r OBJ; do
     (
-      # Build flags array from JSON object
-      FLAGS_ARRAY=()
-      while IFS="=" read -r key value; do
-        FLAGS_ARRAY+=("--$key" "$value")
-      done < <(jq -r 'to_entries | .[] | "\(.key)=\(.value)"' <<<"$OBJ")
+      # Single jq command to produce the argument array
+      FLAGS_ARRAY=($(jq -r '
+        to_entries | map("--\(.key) \(.value)") | .[]
+      ' <<<"$OBJ"))
 
       # Add --built false if full rebuild
       if [[ "$FULL_SERVICE_REBUILD" == "true" ]]; then
         FLAGS_ARRAY+=("--built" "false")
       fi
 
-      # Debug print
       echo "[DEBUG] Running: bash $SERVICE_PATH/build.sh $SERVICE_PATH ${FLAGS_ARRAY[*]}"
 
-      # Execute build.sh
       bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS_ARRAY[@]}"
     ) &
   done <<<"$JSON_OBJECTS"
