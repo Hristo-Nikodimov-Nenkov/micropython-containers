@@ -6,18 +6,13 @@ HASH_FILE="$SERVICE_PATH/.service_hash"
 
 if [[ ! -f "$HASH_FILE" ]]; then
   echo "true"
-  exit 0
+  exit 41
 fi
 
-CURRENT_HASH=$(
-  cat \
-    "$SERVICE_PATH/Dockerfile" \
-    "$SERVICE_PATH/build_firmware.sh" \
-    "$SERVICE_PATH/versions.json" \
-    | sha256sum | awk '{print $1}'
-)
+CURRENT_HASH=$(cat "$SERVICE_PATH/Dockerfile" "$SERVICE_PATH/build_firmware.sh" "$SERVICE_PATH/versions.json" \
+               | sha256sum | awk '{print $1}') || exit 42
 
-STORED_HASH=$(<"$HASH_FILE")
+STORED_HASH=$(<"$HASH_FILE") || exit 43
 
 if [[ "$CURRENT_HASH" == "$STORED_HASH" ]]; then
   echo "false"

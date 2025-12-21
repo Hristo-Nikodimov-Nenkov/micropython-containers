@@ -21,9 +21,11 @@ steps:
       # Change directory to the repo root (Woodpecker workspace)
       - cd "$CI_WORKSPACE"
 
-      - chmod +x $CI_WORKSPACE/scripts/*.sh
+      # Make all scripts executable
+      - chmod +x scripts/*.sh
 
-      - $CI_WORKSPACE/scripts/git_setup.sh
-      - $CI_WORKSPACE/scripts/docker_login.sh
-      - $CI_WORKSPACE/scripts/validate_repo.sh
-      - $CI_WORKSPACE/scripts/build_services.sh
+      # Run scripts in order
+      - ./scripts/git_setup.sh
+      - ./scripts/docker_login.sh
+      - ./scripts/validate_repo.sh
+      - ./scripts/build_services.sh

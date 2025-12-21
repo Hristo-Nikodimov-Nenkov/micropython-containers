@@ -3,7 +3,9 @@ set -euo pipefail
 
 SERVICES_JSON="$CI_WORKSPACE/services.json"
 
-if [ ! -f "$SERVICES_JSON" ]; then
-  echo "ERROR: services.json missing at repo root"
-  exit 2
+if [[ ! -f "$SERVICES_JSON" ]]; then
+  echo "ERROR: services.json missing at repo root ($SERVICES_JSON)"
+  exit 21
 fi
+
+echo "[INFO] services.json found at $SERVICES_JSON"
