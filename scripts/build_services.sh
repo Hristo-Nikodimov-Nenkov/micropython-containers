@@ -55,15 +55,23 @@ for dir in $ORDERED_SERVICES; do
   # -----------------------------
   for OBJ in "${JSON_ARRAY[@]}"; do
     (
-      # Convert JSON object to array of flags (each key/value separate)
-      readarray -t FLAGS_ARRAY < <(
-        jq -r '. | to_entries[] | "--" + .key, (.value|tostring)' <<<"$OBJ"
-      ) || exit 58
-
-      # Debug print the command before running
+      # Initialize flags array
+      FLAGS_ARRAY=()
+  
+      # Convert JSON object to flags: each key/value becomes two array entries
+      while IFS="=" read -r key value; do
+        FLAGS_ARRAY+=( "--$key" "$value" )
+      done < <(jq -r 'to_entries[] | "\(.key)=\(.value)"' <<<"$OBJ")
+  
+      # Add extra --built false if FULL_SERVICE_REBUILD
+      if [[ "$FULL_SERVICE_REBUILD" == "true" ]]; then
+        FLAGS_ARRAY+=( "--built" "false" )
+      fi
+  
+      # Debug print
       echo "[DEBUG] Running: bash $SERVICE_PATH/build.sh $SERVICE_PATH ${FLAGS_ARRAY[*]}"
-
-      # Call build.sh with proper flags
+  
+      # Run build.sh with proper flags
       bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS_ARRAY[@]}" || exit 59
     ) &
   done
