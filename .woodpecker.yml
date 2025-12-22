@@ -4,18 +4,18 @@ when:
     - manual
 
 steps:
-  - name: setup_container
+  - name: build-container
     image: docker:24.0.5-cli
 
-    environment:
-      DOCKERHUB_USERNAME:
-        from_secret: DOCKERHUB_USERNAME
-      DOCKERHUB_TOKEN:
-        from_secret: DOCKERHUB_TOKEN
-      GIT_USER_NAME:
-        from_secret: GIT_USER_NAME
-      GIT_USER_EMAIL:
-        from_secret: GIT_USER_EMAIL
+#    environment:
+#      DOCKERHUB_USERNAME:
+#        from_secret: DOCKERHUB_USERNAME
+#      DOCKERHUB_TOKEN:
+#        from_secret: DOCKERHUB_TOKEN
+#      GIT_USER_NAME:
+#        from_secret: GIT_USER_NAME
+#      GIT_USER_EMAIL:
+#        from_secret: GIT_USER_EMAIL
 
     volumes:
       - name: dockersock
