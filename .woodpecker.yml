@@ -4,8 +4,9 @@ when:
     - manual
 
 steps:
-  setup_container:
-    image: alpine:latest
+  - name: setup_container
+    image: docker:24.0.5-cli
+
     environment:
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
@@ -15,23 +16,22 @@ steps:
         from_secret: GIT_USER_NAME
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
-#    volumes:
-#      - name: dockersock
-#        path: /var/run/docker.sock
+
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+
     commands:
-      - apk add --no-cache bash jq curl git docker-cli
-
-      # Change directory to the repo root (Woodpecker workspace)
+      - apk add --no-cache bash jq curl git
+      - docker version
       - cd "$CI_WORKSPACE"
+      - chmod +x scripts/*.sh
+      - ./scripts/git_setup.sh
+      - ./scripts/docker_login.sh
+      - ./scripts/validate_repo.sh
+      - ./scripts/build_services.sh
 
-      - chmod +x $CI_WORKSPACE/scripts/*.sh
-
-      - $CI_WORKSPACE/scripts/git_setup.sh
-      - $CI_WORKSPACE/scripts/docker_login.sh
-      - $CI_WORKSPACE/scripts/validate_repo.sh
-      - $CI_WORKSPACE/scripts/build_services.sh
-
-#volumes:
-#  dockersock:
-#    host:
-#      path: /var/run/docker.sock
+volumes:
+  dockersock:
+    host:
+      path: /var/run/docker.sock
