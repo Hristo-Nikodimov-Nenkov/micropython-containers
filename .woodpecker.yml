@@ -13,6 +13,7 @@ steps:
       DOCKERHUB_TOKEN:
         from_secret: DOCKERHUB_TOKEN
     commands:
+      - apk add --no-cache bash jq curl git docker-cli
       # Go to repo root
       - cd "$CI_WORKSPACE"
 
