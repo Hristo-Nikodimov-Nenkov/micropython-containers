@@ -1,56 +1,52 @@
+# Trigger on push or manual
+when:
+  event:
+    - push
+    - manual
+
 steps:
   - name: build_and_push
     image: docker:25.0.1-cli
+    # Attach to the same network as the agent & docker-dind
+    networks:
+      - woodpecker
     environment:
+      # Point CLI to Docker daemon running in DinD container
       DOCKER_HOST: tcp://docker-dind:2375
       DOCKER_API_VERSION: auto
-      GIT_USER_NAME:
-        from_secret: GIT_USER_NAME
-      GIT_USER_EMAIL:
-        from_secret: GIT_USER_EMAIL
+
+      # Secrets for Docker Hub
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
         from_secret: DOCKERHUB_TOKEN
+
+      # Git user info
+      GIT_USER_NAME:
+        from_secret: GIT_USER_NAME
+      GIT_USER_EMAIL:
+        from_secret: GIT_USER_EMAIL
+
     commands:
+      # Debug: check Docker CLI can reach DinD
       - apk add --no-cache bash jq curl git docker-cli
-      # Go to repo root
+      - docker version
+
+      # Login to Docker Hub
+      - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      # Move to repo workspace
       - cd "$CI_WORKSPACE"
 
-      # Make scripts executable
+      # Make all scripts executable
       - chmod +x scripts/*.sh
 
-      # Run scripts
+      # Run your existing scripts
       - ./scripts/git_setup.sh
       - ./scripts/docker_login.sh
       - ./scripts/validate_repo.sh
       - ./scripts/build_services.sh
-#
-#
-#when:
-#  event:
-#    - push
-#    - manual
-#
-#steps:
-#  - name: setup_container
-#    image: docker:25-cli
-#
-#    environment:
-#      DOCKERHUB_USERNAME:
-#        from_secret: DOCKERHUB_USERNAME
-#      DOCKERHUB_TOKEN:
-#        from_secret: DOCKERHUB_TOKEN
-#      GIT_USER_NAME:
-#        from_secret: GIT_USER_NAME
-#      GIT_USER_EMAIL:
-#        from_secret: GIT_USER_EMAIL
-#
-#    commands:
-#      - apk add --no-cache bash jq curl git docker-cli
-#      - cd "$CI_WORKSPACE"
-#      - chmod +x scripts/*.sh
-#      - ./scripts/git_setup.sh
-#      - ./scripts/docker_login.sh
-#      - ./scripts/validate_repo.sh
-#      - ./scripts/build_services.sh
+
+networks:
+  woodpecker:
+    external: true  # must match your docker-compose.yml network name
