@@ -10,7 +10,7 @@ echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 chmod +x scripts/*.sh
 
 # Run your existing scripts
-- ./scripts/git_setup.sh
-- ./scripts/docker_login.sh
-- ./scripts/validate_repo.sh
-- ./scripts/build_services.sh
+./scripts/git_setup.sh
+./scripts/docker_login.sh
+./scripts/validate_repo.sh
+./scripts/build_services.sh
