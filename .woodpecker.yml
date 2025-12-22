@@ -1,13 +1,15 @@
+# Runs on push or manual trigger
 when:
   event:
     - push
     - manual
 
 steps:
-  - name: setup_container
-    image: docker:25-cli
-
+  - name: setup
+    image: docker:25.0.1-cli
     environment:
+      DOCKER_HOST: tcp://docker-dind:2375
+      DOCKER_API_VERSION: auto
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
@@ -16,12 +18,47 @@ steps:
         from_secret: GIT_USER_NAME
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
-
     commands:
-      - apk add --no-cache bash jq curl git docker-cli
+      - docker version
+      - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+      # Go to repo root
       - cd "$CI_WORKSPACE"
+
+      # Make scripts executable
       - chmod +x scripts/*.sh
+
+      # Run scripts
       - ./scripts/git_setup.sh
       - ./scripts/docker_login.sh
       - ./scripts/validate_repo.sh
       - ./scripts/build_services.sh
+#
+#
+#when:
+#  event:
+#    - push
+#    - manual
+#
+#steps:
+#  - name: setup_container
+#    image: docker:25-cli
+#
+#    environment:
+#      DOCKERHUB_USERNAME:
+#        from_secret: DOCKERHUB_USERNAME
+#      DOCKERHUB_TOKEN:
+#        from_secret: DOCKERHUB_TOKEN
+#      GIT_USER_NAME:
+#        from_secret: GIT_USER_NAME
+#      GIT_USER_EMAIL:
+#        from_secret: GIT_USER_EMAIL
+#
+#    commands:
+#      - apk add --no-cache bash jq curl git docker-cli
+#      - cd "$CI_WORKSPACE"
+#      - chmod +x scripts/*.sh
+#      - ./scripts/git_setup.sh
+#      - ./scripts/docker_login.sh
+#      - ./scripts/validate_repo.sh
+#      - ./scripts/build_services.sh
