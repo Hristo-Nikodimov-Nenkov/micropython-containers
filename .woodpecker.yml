@@ -1,27 +1,18 @@
-# Runs on push or manual trigger
-when:
-  event:
-    - push
-    - manual
-
 steps:
-  - name: setup
+  - name: build_and_push
     image: docker:25.0.1-cli
     environment:
       DOCKER_HOST: tcp://docker-dind:2375
       DOCKER_API_VERSION: auto
-      DOCKERHUB_USERNAME:
-        from_secret: DOCKERHUB_USERNAME
-      DOCKERHUB_TOKEN:
-        from_secret: DOCKERHUB_TOKEN
       GIT_USER_NAME:
         from_secret: GIT_USER_NAME
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
+      DOCKERHUB_USERNAME:
+        from_secret: DOCKERHUB_USERNAME
+      DOCKERHUB_TOKEN:
+        from_secret: DOCKERHUB_TOKEN
     commands:
-      - docker version
-      - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-
       # Go to repo root
       - cd "$CI_WORKSPACE"
 
