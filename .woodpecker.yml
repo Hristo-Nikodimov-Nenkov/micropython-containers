@@ -15,9 +15,9 @@ steps:
         from_secret: GIT_USER_NAME
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
-    volumes:
-      - name: dockersock
-        path: /var/run/docker.sock
+#    volumes:
+#      - name: dockersock
+#        path: /var/run/docker.sock
     commands:
       - apk add --no-cache bash jq curl git docker-cli
 
@@ -31,7 +31,7 @@ steps:
       - $CI_WORKSPACE/scripts/validate_repo.sh
       - $CI_WORKSPACE/scripts/build_services.sh
 
-volumes:
-  dockersock:
-    host:
-      path: /var/run/docker.sock
+#volumes:
+#  dockersock:
+#    host:
+#      path: /var/run/docker.sock
