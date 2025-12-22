@@ -25,3 +25,8 @@ steps:
       - ./scripts/docker_login.sh
       - ./scripts/validate_repo.sh
       - ./scripts/build_services.sh
+
+volumes:
+  dockersock:
+    host:
+      path: /var/run/docker.sock
