@@ -5,7 +5,7 @@ when:
 
 steps:
   - name: setup_container
-    image: docker:24.0.5-cli
+    image: alpine:latest
 
     environment:
       DOCKERHUB_USERNAME:
@@ -17,21 +17,11 @@ steps:
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
 
-    volumes:
-      - name: dockersock
-        path: /var/run/docker.sock
-
     commands:
-      - apk add --no-cache bash jq curl git
-      - docker version
+      - apk add --no-cache bash jq curl git docker-cli
       - cd "$CI_WORKSPACE"
       - chmod +x scripts/*.sh
       - ./scripts/git_setup.sh
       - ./scripts/docker_login.sh
       - ./scripts/validate_repo.sh
       - ./scripts/build_services.sh
-
-volumes:
-  dockersock:
-    host:
-      path: /var/run/docker.sock
