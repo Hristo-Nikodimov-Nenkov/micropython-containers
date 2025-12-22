@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source .env
+
 # Configure git
 git config --global user.name "$GIT_USER_NAME" || exit 1
 git config --global user.email "$GIT_USER_EMAIL" || exit 2

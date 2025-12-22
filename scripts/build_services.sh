@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source .env
+
 WORKSPACE="${CI_WORKSPACE:-$(pwd)}"
 SERVICES_JSON="$WORKSPACE/services.json"
 
