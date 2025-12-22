@@ -4,41 +4,32 @@ when:
     - manual
 
 steps:
-  - name: build-container
-    image: docker:24.0.5-cli
-
-#    environment:
-#      DOCKERHUB_USERNAME:
-#        from_secret: DOCKERHUB_USERNAME
-#      DOCKERHUB_TOKEN:
-#        from_secret: DOCKERHUB_TOKEN
-#      GIT_USER_NAME:
-#        from_secret: GIT_USER_NAME
-#      GIT_USER_EMAIL:
-#        from_secret: GIT_USER_EMAIL
-
+  setup_container:
+    image: alpine:latest
+    environment:
+      DOCKERHUB_USERNAME:
+        from_secret: DOCKERHUB_USERNAME
+      DOCKERHUB_TOKEN:
+        from_secret: DOCKERHUB_TOKEN
+      GIT_USER_NAME:
+        from_secret: GIT_USER_NAME
+      GIT_USER_EMAIL:
+        from_secret: GIT_USER_EMAIL
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
-
     commands:
-      # Install only missing tools (no docker install!)
-      - apk add --no-cache bash jq curl git
+      - apk add --no-cache bash jq curl git docker-cli
 
-      # Verify Docker works
-      - docker version
-
-      # Go to repo root
+      # Change directory to the repo root (Woodpecker workspace)
       - cd "$CI_WORKSPACE"
 
-      # Make scripts executable
-      - chmod +x scripts/*.sh
+      - chmod +x $CI_WORKSPACE/scripts/*.sh
 
-      # Run scripts
-      - ./scripts/git_setup.sh
-      - ./scripts/docker_login.sh
-      - ./scripts/validate_repo.sh
-      - ./scripts/build_services.sh
+      - $CI_WORKSPACE/scripts/git_setup.sh
+      - $CI_WORKSPACE/scripts/docker_login.sh
+      - $CI_WORKSPACE/scripts/validate_repo.sh
+      - $CI_WORKSPACE/scripts/build_services.sh
 
 volumes:
   dockersock:
