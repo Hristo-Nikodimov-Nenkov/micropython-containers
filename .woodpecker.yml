@@ -4,11 +4,10 @@ when:
     - manual
 
 steps:
-  setup_container:
-    image: docker:latest
-    environment:
-      DOCKER_HOST: tcp://docker-dind:2375
+  - name: setup_container
+    image: docker:24.0.5-cli
 
+    environment:
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
@@ -18,17 +17,30 @@ steps:
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
 
-    commands:
-      - apk add --no-cache bash jq curl git docker-cli
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
 
-      # Change directory to the repo root (Woodpecker workspace)
+    commands:
+      # Install only missing tools (no docker install!)
+      - apk add --no-cache bash jq curl git
+
+      # Verify Docker works
+      - docker version
+
+      # Go to repo root
       - cd "$CI_WORKSPACE"
 
-      # Make all scripts executable
+      # Make scripts executable
       - chmod +x scripts/*.sh
 
-      # Run scripts in order
+      # Run scripts
       - ./scripts/git_setup.sh
       - ./scripts/docker_login.sh
       - ./scripts/validate_repo.sh
       - ./scripts/build_services.sh
+
+volumes:
+  dockersock:
+    host:
+      path: /var/run/docker.sock
