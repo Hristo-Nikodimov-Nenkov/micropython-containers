@@ -5,7 +5,7 @@ when:
 
 steps:
   - name: setup_container
-    image: docker:latest-cli
+    image: docker:25-cli
 
     environment:
       DOCKERHUB_USERNAME:
