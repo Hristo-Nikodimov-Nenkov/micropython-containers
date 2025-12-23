@@ -6,6 +6,7 @@ when:
 steps:
   - name: build_and_push
     image: docker:latest
+    privileged: true
     environment:
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
@@ -16,6 +17,8 @@ steps:
         from_secret: GIT_USER_NAME
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
     commands:
       - apk add --no-cache bash jq curl git
