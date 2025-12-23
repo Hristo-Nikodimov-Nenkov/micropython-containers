@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source .env
-
 SERVICES_JSON="$CI_WORKSPACE/services.json"
 
 if [[ ! -f "$SERVICES_JSON" ]]; then

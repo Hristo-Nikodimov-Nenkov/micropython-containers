@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source .env
-
 SERVICE_PATH="${1:?Service path is required}"
 
 [[ -f "$SERVICE_PATH/Dockerfile" ]] || { echo "ERROR: Dockerfile missing in $SERVICE_PATH"; exit 31; }

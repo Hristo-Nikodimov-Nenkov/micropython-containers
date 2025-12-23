@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-source .env
-
 SERVICE_PATH="${1:?Service path is required}"
 HASH_FILE="$SERVICE_PATH/.service_hash"
 

@@ -1,7 +1,5 @@
 #!/bin/sh
 
-source .env
-
 check_required_files() {
   SERVICE_PATH="$1"
 
