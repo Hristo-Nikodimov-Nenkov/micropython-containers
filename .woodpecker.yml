@@ -1,4 +1,3 @@
-# Trigger on push or manual
 when:
   event:
     - push
@@ -6,34 +5,21 @@ when:
 
 steps:
   - name: build_and_push
-    image: docker:25.0.1-cli
-    # Attach to the same network as the agent & docker-dind
-    networks:
-      - woodpecker
+    image: docker:latest
     environment:
-      # Point CLI to Docker daemon running in DinD container
-      DOCKER_HOST: tcp://docker-dind:2375
-      DOCKER_API_VERSION: auto
-
-      # Secrets for Docker Hub
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
         from_secret: DOCKERHUB_TOKEN
 
-      # Git user info
       GIT_USER_NAME:
         from_secret: GIT_USER_NAME
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
 
     commands:
-      # Debug: check Docker CLI can reach DinD
-      - apk add --no-cache bash jq curl git docker-cli
+      - apk add --no-cache bash jq curl git
       - docker version
-
-      # Login to Docker Hub
-      - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
       # Move to repo workspace
       - cd "$CI_WORKSPACE"
@@ -46,7 +32,3 @@ steps:
       - ./scripts/docker_login.sh
       - ./scripts/validate_repo.sh
       - ./scripts/build_services.sh
-
-networks:
-  woodpecker:
-    external: true  # must match your docker-compose.yml network name
