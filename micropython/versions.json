@@ -83,15 +83,5 @@
     "tag": "v1.22.0",
     "micropython": "v1.22.0",
     "built": false
-  },
-  {
-    "tag": "v1.21.0",
-    "micropython": "v1.21.0",
-    "built": false
-  },
-  {
-    "tag": "v1.21",
-    "micropython": "v1.21.0",
-    "built": false
   }
 ]
