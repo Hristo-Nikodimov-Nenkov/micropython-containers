@@ -63,6 +63,14 @@ else
     freeze_main="${freeze_main,,}"
     generate_manifest=false
 
+    echo ==============================
+    echo DEBUG
+    echo ==============================
+    ls -al $PROJECT_DIR
+    echo ------------------------------
+    ls -al $MODULES_DIR
+    echo ==============================
+
     if [[ "$modules_nonempty" == true || "$freeze_main" == "true" ]]; then
         generate_manifest=true
     fi
