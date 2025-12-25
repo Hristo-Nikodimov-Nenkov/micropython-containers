@@ -1,117 +1,8 @@
 [
   {
-    "micropython": "v1.27.0",
-    "esp_idf": "v5.5.1",
-    "tag": "latest",
-    "built": false
-  },
-  {
-    "micropython": "v1.27.0",
-    "esp_idf": "v5.5.1",
-    "tag": "v1.27_v5.5",
-    "built": false
-  },
-  {
-    "micropython": "v1.27.0",
-    "esp_idf": "v5.5.1",
-    "tag": "v1.27.0_v5.5",
-    "built": false
-  },
-  {
-    "micropython": "v1.27.0",
-    "esp_idf": "v5.5.1",
-    "tag": "v1.27_v5.5.1",
-    "built": false
-  },
-  {
-    "micropython": "v1.27.0",
-    "esp_idf": "v5.5.1",
-    "tag": "v1.27.0_v5.5.1",
-    "built": false
-  },
-  
-  {
-    "micropython": "v1.26.1",
-    "esp_idf": "v5.4.2",
-    "tag": "v1.26_v5.4",
-    "built": false
-  },
-  {
-    "micropython": "v1.26.1",
-    "esp_idf": "v5.4.2",
-    "tag": "v1.26.1_v5.4",
-    "built": false
-  },
-  {
-    "micropython": "v1.26.1",
-    "esp_idf": "v5.4.2",
-    "tag": "v1.26_v5.4.2",
-    "built": false
-  },
-  {
-    "micropython": "v1.26.1",
-    "esp_idf": "v5.4.2",
-    "tag": "v1.26.1_v5.4.2",
-    "built": false
-  },
-  {
-    "micropython": "v1.25.0",
-    "esp_idf": "v5.2.2",
-    "tag": "v1.25_v5.2",
-    "built": false
-  },
-  {
-    "micropython": "v1.25.0",
-    "esp_idf": "v5.2.2",
-    "tag": "v1.25_v5.2.2",
-    "built": false
-  },
-  {
-    "micropython": "v1.25.0",
-    "esp_idf": "v5.2.2",
-    "tag": "v1.25.0_v5.2",
-    "built": false
-  },
-  {
-    "micropython": "v1.25.0",
-    "esp_idf": "v5.2.1",
-    "tag": "v1.25.0_v5.2.1",
-    "built": false
-  },
-  {
-    "micropython": "v1.25.0",
-    "esp_idf": "v5.2.1",
-    "tag": "v1.25_v5.2.1",
-    "built": false
-  },
-  {
-    "micropython": "v1.24.1",
-    "esp_idf": "v5.2.1",
-    "tag": "v1.24_v5.2",
-    "built": false
-  },
-  {
-    "micropython": "v1.24.1",
-    "esp_idf": "v5.2.1",
-    "tag": "v1.24_v5.2.1",
-    "built": false
-  },
-  {
-    "micropython": "v1.24.1",
-    "esp_idf": "v5.2.1",
-    "tag": "v1.24.1_v5.2",
-    "built": false
-  },
-  {
-    "micropython": "v1.24.1",
-    "esp_idf": "v5.2.1",
-    "tag": "v1.24.1_v5.2.1",
-    "built": false
-  },
-  {
     "micropython": "v1.24.1",
     "esp_idf": "v5.1.4",
-    "tag": "v1.24_v5.1",
+    "tag": "v1.24.1_v5.1.4",
     "built": false
   },
   {
@@ -129,7 +20,121 @@
   {
     "micropython": "v1.24.1",
     "esp_idf": "v5.1.4",
-    "tag": "v1.24.1_v5.1.4",
+    "tag": "v1.24_v5.1",
+    "built": false
+  },
+  {
+    "micropython": "v1.24.1",
+    "esp_idf": "v5.2.1",
+    "tag": "v1.24.1_v5.2.1",
+    "built": false
+  },
+  {
+    "micropython": "v1.24.1",
+    "esp_idf": "v5.2.1",
+    "tag": "v1.24_v5.2.1",
+    "built": false
+  },
+  {
+    "micropython": "v1.24.1",
+    "esp_idf": "v5.2.1",
+    "tag": "v1.24.1_v5.2",
+    "built": false
+  },
+  {
+    "micropython": "v1.24.1",
+    "esp_idf": "v5.2.1",
+    "tag": "v1.24_v5.2",
+    "built": false
+  },
+  {
+    "micropython": "v1.25.0",
+    "esp_idf": "v5.2.1",
+    "tag": "v1.25.0_v5.2.1",
+    "built": false
+  },
+  {
+    "micropython": "v1.25.0",
+    "esp_idf": "v5.2.1",
+    "tag": "v1.25_v5.2.1",
+    "built": false
+  },
+  {
+    "micropython": "v1.25.0",
+    "esp_idf": "v5.2.2",
+    "tag": "v1.25.0_v5.2.2",
+    "built": false
+  },
+  {
+    "micropython": "v1.25.0",
+    "esp_idf": "v5.2.2",
+    "tag": "v1.25_v5.2.2",
+    "built": false
+  },
+  {
+    "micropython": "v1.25.0",
+    "esp_idf": "v5.2.2",
+    "tag": "v1.25.0_v5.2",
+    "built": false
+  },
+  {
+    "micropython": "v1.25.0",
+    "esp_idf": "v5.2.2",
+    "tag": "v1.25_v5.2",
+    "built": false
+  },
+  {
+    "micropython": "v1.26.1",
+    "esp_idf": "v5.4.2",
+    "tag": "v1.26.1_v5.4.2",
+    "built": false
+  },
+  {
+    "micropython": "v1.26.1",
+    "esp_idf": "v5.4.2",
+    "tag": "v1.26_v5.4.2",
+    "built": false
+  },
+  {
+    "micropython": "v1.26.1",
+    "esp_idf": "v5.4.2",
+    "tag": "v1.26.1_v5.4",
+    "built": false
+  },  
+  {
+    "micropython": "v1.26.1",
+    "esp_idf": "v5.4.2",
+    "tag": "v1.26_v5.4",
+    "built": false
+  },
+  {
+    "micropython": "v1.27.0",
+    "esp_idf": "v5.5.1",
+    "tag": "v1.27.0_v5.5.1",
+    "built": false
+  },
+  {
+    "micropython": "v1.27.0",
+    "esp_idf": "v5.5.1",
+    "tag": "v1.27.0_v5.5",
+    "built": false
+  },
+  {
+    "micropython": "v1.27.0",
+    "esp_idf": "v5.5.1",
+    "tag": "v1.27_v5.5.1",
+    "built": false
+  },
+  {
+    "micropython": "v1.27.0",
+    "esp_idf": "v5.5.1",
+    "tag": "v1.27_v5.5",
+    "built": false
+  },
+  {
+    "micropython": "v1.27.0",
+    "esp_idf": "v5.5.1",
+    "tag": "latest",
     "built": false
   }
 ]
