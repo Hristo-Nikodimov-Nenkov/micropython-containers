@@ -12,7 +12,7 @@ steps:
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
     commands:
-      - ls $CI_WORKSPACE
+      - echo $CI_WORKSPACE
       - cd /var/workspace
 
       - git config user.name "$GIT_USER_NAME" || exit 1
