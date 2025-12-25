@@ -20,9 +20,6 @@ steps:
       - git config user.email "$GIT_USER_EMAIL" || exit 2
       - git config --add safe.directory "$CI_WORKSPACE" || exit 3
 
-  - name: Parse services.json
-
-
   - name: build
     image: docker:latest
     environment:
