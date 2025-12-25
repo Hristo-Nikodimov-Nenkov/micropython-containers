@@ -11,9 +11,8 @@ steps:
         from_secret: GIT_USER_NAME
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
-    volumes:
-      - $(pwd):/var/workspace
     commands:
+      - ls $CI_WORKSPACE
       - cd /var/workspace
 
       - git config user.name "$GIT_USER_NAME" || exit 1
