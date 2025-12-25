@@ -13,19 +13,15 @@ EXPORT_SH="$IDF_PATH/export.sh"
 PORT_DIR="${MICROPYTHON_DIR}/ports/esp32"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 
-echo "==========================================="
+
+echo "========================================================================================="
 echo " Building MicroPython firmware for:"
 echo " BOARD = ${BOARD}"
-echo "==========================================="
-
-if [[ ! -d "$PORT_DIR" ]]; then
-    echo "ERROR: MicroPython port not found: $PORT_DIR"
-    exit 2
-fi
+echo "========================================================================================="
 
 if [[ ! -d "$BOARD_DIR" ]]; then
     echo "ERROR: Board not found: $BOARD_DIR"
-    exit 3
+    exit 2
 fi
 
 # -----------------------------------------------------------------------
@@ -54,6 +50,10 @@ if [[ -f "$MANIFEST" ]]; then
 else
     echo "No manifest.py found — checking if generation is needed..."
 
+    echo " PROJECT_DIR:"
+    ls -al $PROJECT_DIR
+    echo ""
+
     modules_nonempty=false
     if [ -d "$MODULES_DIR" ] && find "$MODULES_DIR" -mindepth 1 | read; then
         modules_nonempty=true
@@ -62,14 +62,6 @@ else
     freeze_main="${FREEZE_MAIN:-false}"
     freeze_main="${freeze_main,,}"
     generate_manifest=false
-
-    echo ==============================
-    echo DEBUG
-    echo ==============================
-    ls -al $PROJECT_DIR
-    echo ------------------------------
-    ls -al $MODULES_DIR
-    echo ==============================
 
     if [[ "$modules_nonempty" == true || "$freeze_main" == "true" ]]; then
         generate_manifest=true
@@ -91,6 +83,7 @@ else
         echo "No modules to freeze and FREEZE_MAIN not set — continuing without manifest."
     fi
 fi
+echo "-----------------------------------------------------------------------------------------"
 
 # ---------------------------------------------------------------------------
 # Build firmware
@@ -124,3 +117,10 @@ else
     echo "ERROR: Build directory not found: $BUILD_DIR"
     exit 5
 fi
+
+echo " Project directory content:"
+ls -al $PROJECT_DIR
+echo ""
+echo " Output directory content:"
+ls -al $OUTPUT_DIR
+echo "========================================================================================="

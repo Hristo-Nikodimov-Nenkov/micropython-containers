@@ -12,11 +12,9 @@ MICROPY_DIR="/opt/micropython"
 PORT_DIR="${MICROPY_DIR}/ports/${PORT}"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 
-echo "==========================================="
-echo " Building MicroPython firmware for:"
-echo " PORT  = ${PORT}"
-echo " BOARD = ${BOARD}"
-echo "==========================================="
+echo "========================================================================================="
+echo " Building MicroPython firmware for PORT ${PORT} BOARD: ${BOARD}"
+echo "========================================================================================="
 
 if [[ ! -d "$PORT_DIR" ]]; then
     echo "ERROR: MicroPython port not found: $PORT_DIR"
@@ -35,11 +33,9 @@ if [[ ! -x "$MPY_CROSS" ]]; then
 fi
 export MPY_CROSS
 
-# ---------------------------------------------------------------------------
-# Handle manifest
-# ---------------------------------------------------------------------------
 MANIFEST="$PROJECT_DIR/manifest.py"
 MODULES_DIR="$PROJECT_DIR/modules"
+echo "-----------------------------------------------------------------------------------------"
 
 if [[ -f "$MANIFEST" ]]; then
     echo "Using existing manifest.py"
@@ -76,17 +72,17 @@ else
     fi
 fi
 
-# ---------------------------------------------------------------------------
-# Build firmware
-# ---------------------------------------------------------------------------
-echo "==========================================="
+echo "-----------------------------------------------------------------------------------------"
+
+echo "========================================================================================="
 echo " Building firmware..."
-echo "==========================================="
+echo "========================================================================================="
 
 cd "$PORT_DIR"
 
 make clean
 make BOARD="$BOARD" submodules
+echo "-----------------------------------------------------------------------------------------"
 
 if [[ -f "$MANIFEST" ]]; then
     echo "Using frozen manifest: $MANIFEST"
@@ -97,6 +93,7 @@ fi
 
 OUTPUT_DIR="$PROJECT_DIR/dist"
 mkdir -p "$OUTPUT_DIR"
+echo " OUTPUT_DIR: $OUTPUT_DIR"
 
 BUILD_DIR="$PORT_DIR/build-$BOARD"
 
@@ -106,3 +103,9 @@ else
     echo "ERROR: Build directory not found: $BUILD_DIR"
     exit 5
 fi
+echo "-----------------------------------------------------------------------------------------"
+echo " Project directory content:"
+ls $PROJECT_DIR
+echo " Output directory content:"
+ls $OUTPUT_DIR
+echo "========================================================================================="
