@@ -1,15 +1,5 @@
 [
   {
-    "tag": "v1.19.1",
-    "micropython": "v1.19.1",
-    "built": false
-  },
-  {
-    "tag": "v1.19",
-    "micropython": "v1.19.1",
-    "built": false
-  },
-  {
     "tag": "v1.20.0",
     "micropython": "v1.20.0",
     "built": false
