@@ -27,10 +27,6 @@ steps:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
         from_secret: DOCKERHUB_TOKEN
-
-    volumes:
-#      - /var/run/docker.sock:/var/run/docker.sock
-      - $CI_WORKSPACE:/var/workspace
     volumes:
 #      - /var/run/docker.sock:/var/run/docker.sock
       - $CI_WORKSPACE:/var/workspace
