@@ -4,28 +4,46 @@ when:
     - manual
 
 steps:
-  - name: build_and_push
+  - name: Set-up git
+    image: alpine:latest
+    environment:
+      GIT_USER_NAME:
+        from_secret: GIT_USER_NAME
+      GIT_USER_EMAIL:
+        from_secret: GIT_USER_EMAIL
+    volumes:
+      - $CI_WORKSPACE:/var/workspace
+    commands:
+      - cd /var/workspace
+
+      - git config user.name "$GIT_USER_NAME" || exit 1
+      - git config user.email "$GIT_USER_EMAIL" || exit 2
+      - git config --add safe.directory "$CI_WORKSPACE" || exit 3
+
+  - name: Parse services.json
+
+
+  - name: build
     image: docker:latest
-    privileged: true
     environment:
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
         from_secret: DOCKERHUB_TOKEN
 
-      GIT_USER_NAME:
-        from_secret: GIT_USER_NAME
-      GIT_USER_EMAIL:
-        from_secret: GIT_USER_EMAIL
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-
+#      - /var/run/docker.sock:/var/run/docker.sock
+      - $CI_WORKSPACE:/var/workspace
+    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+      - $CI_WORKSPACE:/var/workspace
     commands:
       - apk add --no-cache bash jq curl git
       - docker version
 
-      # Move to repo workspace
-      - cd "$CI_WORKSPACE"
+
+
+      - cd $CI_WORKSPACE
 
       # Make all scripts executable
       - chmod +x scripts/*.sh

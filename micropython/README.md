@@ -43,25 +43,26 @@ Available versions can be found here:
 https://hub.docker.com/r/rav3nh01m/micropython/tags
 
 Pull the image:
-```sh
+```bash
 docker pull rav3nh01m/micropython:latest
 ```
+
 After that, run:
-```sh
+```bash
 docker run --rm \
 -e PORT=rp2 \
 -e BOARD=RPI_PICO_W \
--v ./:/project \
+-v ./:/var/project \
 rav3nh01m/micropython:latest
 ```
 Or if you want to freeze main.py:
 
-```sh
+```bash
 docker run --rm \
 -e PORT=rp2 \
 -e BOARD=RPI_PICO_W \
 -e FREEZE_MAIN=true \
--v ./:/project \
+-v ./:/var/project \
 rav3nh01m/micropython:latest
 ```
 

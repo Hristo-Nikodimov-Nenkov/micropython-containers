@@ -1,106 +1,61 @@
 [
   {
-    "tag": "v1.20.0",
+    "tags": "v1.20.0 v1.20",
     "micropython": "v1.20.0",
     "built": false
   },
   {
-    "tag": "v1.20",
-    "micropython": "v1.20.0",
-    "built": false
-  },
-  {
-    "tag": "v1.21.0",
+    "tags": "v1.21.0 v1.21",
     "micropython": "v1.21.0",
     "built": false
   },
   {
-    "tag": "v1.21",
-    "micropython": "v1.21.0",
-    "built": false
-  },
-  {
-    "tag": "v1.22.0",
+    "tags": "v1.22.0",
     "micropython": "v1.22.0",
     "built": false
   },
   {
-    "tag": "v1.22.1",
+    "tags": "v1.22.1",
     "micropython": "v1.22.1",
     "built": false
   },
   {
-    "tag": "v1.22.2",
+    "tags": "v1.22.2 v1.22",
     "micropython": "v1.22.2",
     "built": false
   },
   {
-    "tag": "v1.22",
-    "micropython": "v1.22.2",
-    "built": false
-  },
-  {
-    "tag": "v1.23.0",
+    "tags": "v1.23.0 v1.23",
     "micropython": "v1.23.0",
     "built": false
   },
   {
-    "tag": "v1.23",
-    "micropython": "v1.23.0",
-    "built": false
-  },
-  {
-    "tag": "v1.24.0",
+    "tags": "v1.24.0",
     "micropython": "v1.24.0",
     "built": false
   },
   {
-    "tag": "v1.24.1",
+    "tags": "v1.24.1 v1.24",
     "micropython": "v1.24.1",
     "built": false
   },
   {
-    "tag": "v1.24",
-    "micropython": "v1.24.1",
-    "built": false
-  },
-  {
-    "tag": "v1.25.0",
+    "tags": "v1.25.0 v1.25",
     "micropython": "v1.25.0",
     "built": false
   },
   {
-    "tag": "v1.25",
-    "micropython": "v1.25.0",
-    "built": false
-  },
-  {
-    "tag": "v1.26.0",
+    "tags": "v1.26.0",
     "micropython": "v1.26.0",
     "built": false
   },
   {
-    "tag": "v1.26.1",
+    "tags": "v1.26.1 v1.26",
     "micropython": "v1.26.1",
     "built": false
   },
   {
-    "tag": "v1.26",
-    "micropython": "v1.26.1",
-    "built": false
-  },
-  {
-    "tag": "v1.27.0",
-    "micropython": "v1.27.0",
-    "built": false
-  },
-  {
-    "tag": "v1.27",
-    "micropython": "v1.27.0",
-    "built": false
-  },
-  {
-    "tag": "latest",
+    "tags": "v1.27.0 v1.27 latest",
     "micropython": "v1.27.0",
     "built": false
   }
