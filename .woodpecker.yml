@@ -4,7 +4,7 @@ when:
     - manual
 
 steps:
-  - name: Set-up git
+  - name: Set-up git.
     image: alpine:latest
     environment:
       GIT_USER_NAME:
@@ -12,36 +12,46 @@ steps:
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
     commands:
-      - echo $CI_WORKSPACE
-      - cd /var/workspace
+      - cd $CI_WORKSPACE
 
       - git config user.name "$GIT_USER_NAME" || exit 1
       - git config user.email "$GIT_USER_EMAIL" || exit 2
       - git config --add safe.directory "$CI_WORKSPACE" || exit 3
 
-  - name: build
-    image: docker:latest
-    environment:
-      DOCKERHUB_USERNAME:
-        from_secret: DOCKERHUB_USERNAME
-      DOCKERHUB_TOKEN:
-        from_secret: DOCKERHUB_TOKEN
-    volumes:
-#      - /var/run/docker.sock:/var/run/docker.sock
-      - $${CI_WORKSPACE}:/var/workspace
+  - name: Check services.
+    image: alpine:latest
     commands:
-      - apk add --no-cache bash jq curl git
-      - docker version
+      - SERVICES_JSON="$CI_WORKSPACE/services.json"
+      - |
+        if [[ ! -f "$SERVICES_JSON" ]]; then
+          echo "ERROR: services.json missing at repo root ($SERVICES_JSON)" exit 21
+        fi
 
+        echo "[INFO] services.json found at $SERVICES_JSON"
 
-
-      - cd $CI_WORKSPACE
-
-      # Make all scripts executable
-      - chmod +x scripts/*.sh
-
-      # Run your existing scripts
-      - ./scripts/git_setup.sh
-      - ./scripts/docker_login.sh
-      - ./scripts/validate_repo.sh
-      - ./scripts/build_services.sh
+#  - name: build
+#    image: docker:latest
+#    environment:
+#      DOCKERHUB_USERNAME:
+#        from_secret: DOCKERHUB_USERNAME
+#      DOCKERHUB_TOKEN:
+#        from_secret: DOCKERHUB_TOKEN
+#    volumes:
+##      - /var/run/docker.sock:/var/run/docker.sock
+#      - $${CI_WORKSPACE}:/var/workspace
+#    commands:
+#      - apk add --no-cache bash jq curl git
+#      - docker version
+#
+#
+#
+#      - cd $CI_WORKSPACE
+#
+#      # Make all scripts executable
+#      - chmod +x scripts/*.sh
+#
+#      # Run your existing scripts
+#      - ./scripts/git_setup.sh
+#      - ./scripts/docker_login.sh
+#      - ./scripts/validate_repo.sh
+#      - ./scripts/build_services.sh
