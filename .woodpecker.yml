@@ -54,7 +54,7 @@ steps:
   
   - name: Build and push containers
     image: docker:latest
-    shell: bash
+#    shell: bash
     environment:
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
