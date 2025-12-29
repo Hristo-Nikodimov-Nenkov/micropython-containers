@@ -64,7 +64,7 @@ steps:
       - /var/run/docker.sock:/var/run/docker.sock
     commands:
       - apk add --no-cache bash jq coreutils
-      - cd "$CI_WORKSPACE"
+      - cd $CI_WORKSPACE
 #      - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
 #      - |  
