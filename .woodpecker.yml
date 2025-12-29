@@ -27,7 +27,7 @@ steps:
       - SERVICES_JSON="$CI_WORKSPACE/services.json"
       - |
         if [[ ! -f "$SERVICES_JSON" ]]; then
-          echo "ERROR: services.json missing at repo root ($SERVICES_JSON)" exit 21
+          echo "ERROR: services.json missing at repo root ($SERVICES_JSON)"; exit 21
         fi
 
         echo "[INFO] services.json found at $SERVICES_JSON"
@@ -116,6 +116,8 @@ steps:
             echo "[INFO] Running build.sh for $service with flags:"
             printf '  %q\n' "${FLAGS[@]}"
 
+            version="$(jq -r '.micropython' <<<"$obj")"
+            
             if bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS[@]}"; then
               BUILD_RESULT=true
               echo "[INFO] Build succeeded for version $version"
