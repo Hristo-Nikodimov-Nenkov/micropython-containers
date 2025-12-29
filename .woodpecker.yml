@@ -64,29 +64,29 @@ steps:
     commands:
       - apk add --no-cache bash jq coreutils
       - docker version
-
+  
       - cd "$CI_WORKSPACE"
-
+  
       # Login to Docker Hub
       - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-
+  
       # Iterate services in order
       - |
         while read -r service; do
           SERVICE_PATH="$CI_WORKSPACE/$service"
           HASH_FILE="$SERVICE_PATH/service_hash"
-
+  
           echo "[INFO] Processing service: $service"
-
+  
           # Compute current hash from key build inputs
           CURRENT_HASH="$(sha256sum \
             "$SERVICE_PATH/Dockerfile" \
             "$SERVICE_PATH/build_firmware.sh" \
             "$SERVICE_PATH/build.sh" \
             | sha256sum | awk '{print $1}')"
-
+  
           FULL_REBUILD="false"
-
+  
           # Full rebuild conditions
           if [ ! -f "$HASH_FILE" ]; then
             echo "[INFO] service_hash missing → full rebuild"
@@ -95,10 +95,10 @@ steps:
             echo "[INFO] service_hash changed → full rebuild"
             FULL_REBUILD="true"
           fi
-
-          # Iterate versions.json
-          jq -c '.[]' "$SERVICE_PATH/versions.json" | while read -r obj; do
-
+  
+          # Iterate versions.json using process substitution
+          while read -r obj; do
+  
             # Map JSON properties to flags
             readarray -t FLAGS < <(
               jq -r '
@@ -107,17 +107,17 @@ steps:
                 | .[]
               ' <<<"$obj"
             )
-
+  
             # Override --built when full rebuild is required
             if [ "$FULL_REBUILD" = "true" ]; then
               FLAGS+=("--built" "false")
             fi
-
-            echo "[INFO] Running build.sh for $service with flags:"
-            printf '  %q\n' "${FLAGS[@]}"
-
+  
             version="$(jq -r '.micropython' <<<"$obj")"
-            
+  
+            echo "[INFO] Running build.sh for $service, version $version with flags:"
+            printf '  %q\n' "${FLAGS[@]}"
+  
             if bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS[@]}"; then
               BUILD_RESULT=true
               echo "[INFO] Build succeeded for version $version"
@@ -125,25 +125,26 @@ steps:
               BUILD_RESULT=false
               echo "[WARN] Build failed for version $version (continuing)"
             fi
-
+  
             # Update built flag in versions.json for THIS object
             tmpfile="$(mktemp)"
-
             jq --argjson built "$BUILD_RESULT" \
-               --arg micropython "$(jq -r '.micropython' <<<"$obj")" '
-              map(
-                if .micropython == $micropython then
-                  .built = $built
-                else
-                  .
-                end
-              )
-            ' "$SERVICE_PATH/versions.json" > "$tmpfile" \
-              && mv "$tmpfile" "$SERVICE_PATH/versions.json"            
-          done
-
-          # Persist hash after successful builds
+               --arg micropython "$version" \
+               "$SERVICE_PATH/versions.json" > "$tmpfile" <<'EOF'
+  map(
+    if .micropython == $micropython then
+      .built = $built
+    else
+      .
+    end
+  )
+  EOF
+            mv "$tmpfile" "$SERVICE_PATH/versions.json"
+  
+          done < <(jq -c '.[]' "$SERVICE_PATH/versions.json")
+  
+          # Persist hash after processing all versions
           echo "$CURRENT_HASH" > "$HASH_FILE"
           echo "[INFO] Finished service: $service"
-
+  
         done < services.order
