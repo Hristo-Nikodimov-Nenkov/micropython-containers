@@ -66,14 +66,13 @@ steps:
       - apk add --no-cache bash jq coreutils
       - cd "$CI_WORKSPACE"
 
-      # Login to Docker Hub (needed if build.sh expects it)
+      # Docker login
       - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
       - |
         while read -r service; do
           SERVICE_PATH="$CI_WORKSPACE/$service"
           HASH_FILE="$SERVICE_PATH/service_hash"
-
           echo "[INFO] Processing service: $service"
 
           CURRENT_HASH=$(sha256sum "$SERVICE_PATH/Dockerfile" "$SERVICE_PATH/build_firmware.sh" "$SERVICE_PATH/build.sh" | sha256sum | awk '{print $1}')
@@ -83,12 +82,13 @@ steps:
             echo "[INFO] Full rebuild required for $service"
           fi
 
-          # Iterate versions.json
+          # Read versions.json
           jq -c '.[]' "$SERVICE_PATH/versions.json" | while read -r obj; do
             FLAGS=()
-            while IFS=" " read -r key value; do
+            for key in $(jq -r 'keys[]' <<<"$obj"); do
+              value=$(jq -r --arg k "$key" '.[$k]' <<<"$obj")
               FLAGS+=("--$key" "$value")
-            done < <(jq -r 'to_entries | map(.key + " " + (.value|tostring)) | .[]' <<<"$obj")
+            done
 
             if [ "$FULL_REBUILD" = "true" ]; then
               FLAGS+=("--built" "false")
@@ -107,10 +107,9 @@ steps:
             fi
 
             tmpfile=$(mktemp)
-            jq --argjson built "$BUILD_RESULT" --arg micropython "$version" '
-              map(if .micropython==$micropython then .built=$built else . end)
-            ' "$SERVICE_PATH/versions.json" > "$tmpfile" && mv "$tmpfile" "$SERVICE_PATH/versions.json"
-
+            jq --argjson built "$BUILD_RESULT" --arg micropython "$version" \
+              'map(if .micropython==$micropython then .built=$built else . end)' \
+              "$SERVICE_PATH/versions.json" > "$tmpfile" && mv "$tmpfile" "$SERVICE_PATH/versions.json"
           done
 
           echo "$CURRENT_HASH" > "$HASH_FILE"
