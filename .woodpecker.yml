@@ -24,21 +24,21 @@ steps:
     commands:
       - apk add --no-cache jq
 
-      - SERVICES_JSON="$CI_WORKSPACE/services.json"
-      - |
-        if [ ! -f "$SERVICES_JSON" ]; then
-          echo "ERROR: services.json missing at repo root ($SERVICES_JSON)"; exit 21
-        fi
-
-        echo "[INFO] services.json found at $SERVICES_JSON"
-
-      - jq -r 'to_entries | sort_by(.value.order) | .[].key' services.json > services.order
-
-      # Show order (optional, for logs)
-      - cat services.order
-
-      # Validate directories exist
-      - while read -r service; do [ -d "$CI_WORKSPACE/$service" ] || exit 22; done < services.order
+#      - SERVICES_JSON="$CI_WORKSPACE/services.json"
+#      - |
+#        if [ ! -f "$SERVICES_JSON" ]; then
+#          echo "ERROR: services.json missing at repo root ($SERVICES_JSON)"; exit 21
+#        fi
+#
+#        echo "[INFO] services.json found at $SERVICES_JSON"
+#
+#      - jq -r 'to_entries | sort_by(.value.order) | .[].key' services.json > services.order
+#
+#      # Show order (optional, for logs)
+#      - cat services.order
+#
+#      # Validate directories exist
+#      - while read -r service; do [ -d "$CI_WORKSPACE/$service" ] || exit 22; done < services.order
 
       # Process services in order
 #      - |
