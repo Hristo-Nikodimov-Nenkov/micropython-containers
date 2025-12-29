@@ -49,7 +49,7 @@ steps:
           [ -f "$SERVICE_PATH/build_firmware.sh" ] || { echo "ERROR: build_firmware.sh missing in $SERVICE_PATH"; exit 24; }
           [ -f "$SERVICE_PATH/versions.json" ] || { echo "ERROR: versions.json missing in $SERVICE_PATH"; exit 25; }
 
-          echo "[INFO] All required files present in $service directory.
+          echo "[INFO] All required files present in $service directory."
         done < services.order
   
   - name: Build and push containers.
