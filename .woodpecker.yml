@@ -4,7 +4,7 @@ when:
     - manual
 
 steps:
-  - name: Set-up git
+  - name: Set-up git.
     image: alpine:latest
     environment:
       GIT_USER_NAME:
@@ -12,7 +12,46 @@ steps:
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
     commands:
-      - echo "Hello asshole!"    
+      - cd $CI_WORKSPACE
+      - apk add --no-cache git
+
+      - git config user.name "$GIT_USER_NAME" || exit 1
+      - git config user.email "$GIT_USER_EMAIL" || exit 2
+      - git config --add safe.directory "$CI_WORKSPACE" || exit 3
+
+  - name: Check services.
+    image: alpine:latest
+    commands:
+      - apk add --no-cache jq
+
+      - SERVICES_JSON="$CI_WORKSPACE/services.json"
+      - |
+        if [[ ! -f "$SERVICES_JSON" ]]; then
+          echo "ERROR: services.json missing at repo root ($SERVICES_JSON)" exit 21
+        fi
+
+        echo "[INFO] services.json found at $SERVICES_JSON"
+
+      - jq -r 'to_entries | sort_by(.value.order) | .[].key' services.json > services.order
+
+      # Show order (optional, for logs)
+      - cat services.order
+
+      # Validate directories exist
+      - while read -r service; do [ -d "$CI_WORKSPACE/$service" ] || exit 22; done < services.order
+
+      # Process services in order
+      - |
+        while read -r service; do
+          SERVICE_PATH="$CI_WORKSPACE/$service"
+
+          [ -f "$SERVICE_PATH/Dockerfile" ] || { echo "ERROR: Dockerfile missing in $SERVICE_PATH"; exit 23; }
+          [ -f "$SERVICE_PATH/build_firmware.sh" ] || { echo "ERROR: build_firmware.sh missing in $SERVICE_PATH"; exit 24; }
+          [ -f "$SERVICE_PATH/versions.json" ] || { echo "ERROR: versions.json missing in $SERVICE_PATH"; exit 25; }
+
+          echo "[INFO] Required files present in $SERVICE_PATH"
+        done < services.order
+        
 #      - cd $CI_WORKSPACE
 #      - apk add --no-cache git
 #
