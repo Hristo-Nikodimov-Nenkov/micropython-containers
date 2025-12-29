@@ -19,11 +19,11 @@ steps:
       - git config user.email "$GIT_USER_EMAIL" || exit 2
       - git config --add safe.directory "$CI_WORKSPACE" || exit 3
 
-  - name: Check services.
-    image: alpine:latest
-    commands:
-      - apk add --no-cache jq
-
+#  - name: Check services.
+#    image: alpine:latest
+#    commands:
+#      - apk add --no-cache jq
+#
 #      - SERVICES_JSON="$CI_WORKSPACE/services.json"
 #      - |
 #        if [ ! -f "$SERVICES_JSON" ]; then
