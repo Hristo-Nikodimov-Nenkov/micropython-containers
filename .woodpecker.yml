@@ -51,3 +51,7 @@ steps:
 
           echo "[INFO] Required files present in $SERVICE_PATH"
         done < services.order
+  - name: Build and push containers.
+    image: docker:latest
+    commands:
+      - apk add --no-cache jq
