@@ -81,37 +81,37 @@ steps:
             FULL_REBUILD="true"
             echo "[INFO] Full rebuild required for $service"
           fi
-
-          # Read versions.json
-          jq -c '.[]' "$SERVICE_PATH/versions.json" | while read -r obj; do
-            FLAGS=()
-            for key in $(jq -r 'keys[]' <<<"$obj"); do
-              value=$(jq -r --arg k "$key" '.[$k]' <<<"$obj")
-              FLAGS+=("--$key" "$value")
-            done
-
-            if [ "$FULL_REBUILD" = "true" ]; then
-              FLAGS+=("--built" "false")
-            fi
-
-            version=$(jq -r '.micropython' <<<"$obj")
-            echo "[INFO] Running build.sh for $service, version $version"
-            printf '  %q\n' "${FLAGS[@]}"
-
-            if bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS[@]}"; then
-              BUILD_RESULT=true
-              echo "[INFO] Build succeeded for version $version"
-            else
-              BUILD_RESULT=false
-              echo "[WARN] Build failed for version $version (continuing)"
-            fi
-
-            tmpfile=$(mktemp)
-            jq --argjson built "$BUILD_RESULT" --arg micropython "$version" \
-              'map(if .micropython==$micropython then .built=$built else . end)' \
-              "$SERVICE_PATH/versions.json" > "$tmpfile" && mv "$tmpfile" "$SERVICE_PATH/versions.json"
-          done
-
-          echo "$CURRENT_HASH" > "$HASH_FILE"
-          echo "[INFO] Finished service: $service"
+#
+#          # Read versions.json
+#          jq -c '.[]' "$SERVICE_PATH/versions.json" | while read -r obj; do
+#            FLAGS=()
+#            for key in $(jq -r 'keys[]' <<<"$obj"); do
+#              value=$(jq -r --arg k "$key" '.[$k]' <<<"$obj")
+#              FLAGS+=("--$key" "$value")
+#            done
+#
+#            if [ "$FULL_REBUILD" = "true" ]; then
+#              FLAGS+=("--built" "false")
+#            fi
+#
+#            version=$(jq -r '.micropython' <<<"$obj")
+#            echo "[INFO] Running build.sh for $service, version $version"
+#            printf '  %q\n' "${FLAGS[@]}"
+#
+#            if bash "$SERVICE_PATH/build.sh" "$SERVICE_PATH" "${FLAGS[@]}"; then
+#              BUILD_RESULT=true
+#              echo "[INFO] Build succeeded for version $version"
+#            else
+#              BUILD_RESULT=false
+#              echo "[WARN] Build failed for version $version (continuing)"
+#            fi
+#
+#            tmpfile=$(mktemp)
+#            jq --argjson built "$BUILD_RESULT" --arg micropython "$version" \
+#              'map(if .micropython==$micropython then .built=$built else . end)' \
+#              "$SERVICE_PATH/versions.json" > "$tmpfile" && mv "$tmpfile" "$SERVICE_PATH/versions.json"
+#          done
+#
+#          echo "$CURRENT_HASH" > "$HASH_FILE"
+#          echo "[INFO] Finished service: $service"
         done < services.order
