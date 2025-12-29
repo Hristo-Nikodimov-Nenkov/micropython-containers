@@ -4,7 +4,7 @@ when:
     - manual
 
 steps:
-  - name: Set-up git.
+  - name: Set-up git
     image: alpine:latest
     environment:
       GIT_USER_NAME:
