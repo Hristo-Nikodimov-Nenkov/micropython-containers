@@ -69,8 +69,7 @@ steps:
       # Docker login
       - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
-      - |
-        while read -r service; do
+      - while read -r service; do
           SERVICE_PATH="$CI_WORKSPACE/$service"
           HASH_FILE="$SERVICE_PATH/service_hash"
           echo "[INFO] Processing service: $service"
