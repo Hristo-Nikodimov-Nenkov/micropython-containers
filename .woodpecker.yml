@@ -65,7 +65,7 @@ steps:
     commands:
       - apk add --no-cache bash jq coreutils
       - cd "$CI_WORKSPACE"
-      - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+#      - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
 #      - |  
 #        while read -r service; do
