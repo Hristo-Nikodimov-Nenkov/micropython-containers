@@ -12,13 +12,13 @@ steps:
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
     commands:
-      - cd $CI_WORKSPACE
-#      - apk add --no-cache git
+#      - cd $CI_WORKSPACE
+      - apk add --no-cache git
 #
 #      - git config user.name "$GIT_USER_NAME" || exit 1
 #      - git config user.email "$GIT_USER_EMAIL" || exit 2
 #      - git config --add safe.directory "$CI_WORKSPACE" || exit 3
-
+#
 #  - name: Check services.
 #    image: alpine:latest
 #    commands:
@@ -39,8 +39,8 @@ steps:
 #
 #      # Validate directories exist
 #      - while read -r service; do [ -d "$CI_WORKSPACE/$service" ] || exit 22; done < services.order
-
-      # Process services in order
+#
+#      # Process services in order
 #      - |
 #        while read -r service; do
 #          SERVICE_PATH="$CI_WORKSPACE/$service"
@@ -51,7 +51,7 @@ steps:
 #
 #          echo "[INFO] All required files present in $service directory."
 #        done < services.order
-
+#
 #  - name: Build and push containers
 #    image: docker:latest
 #    shell: bash
@@ -66,7 +66,7 @@ steps:
 #      - apk add --no-cache bash jq coreutils
 #      - cd $CI_WORKSPACE
 #      - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-
+#
 #      - |  
 #        while read -r service; do
 #          SERVICE_PATH="$CI_WORKSPACE/$service"
@@ -80,10 +80,10 @@ steps:
 #            echo "[INFO] Full rebuild required for $service"
 #          fi
 #        done < services.order
-
-
-
-
+#
+#
+#
+#
 #  - name: Build and push containers
 #    image: docker:latest
 #    shell: bash
