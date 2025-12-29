@@ -12,8 +12,9 @@ steps:
       GIT_USER_EMAIL:
         from_secret: GIT_USER_EMAIL
     commands:
+      - echo "Hello asshole!"    
 #      - cd $CI_WORKSPACE
-      - apk add --no-cache git
+#      - apk add --no-cache git
 #
 #      - git config user.name "$GIT_USER_NAME" || exit 1
 #      - git config user.email "$GIT_USER_EMAIL" || exit 2
