@@ -60,16 +60,22 @@ if [ -z "$TAGS" ]; then
 fi
 
 # -----------------------------
-# Split & trim tags
+# Split & trim tags (POSIX sh)
 # -----------------------------
-FIRST_TAG=""
-echo "$TAGS" | tr ',' '\n' | while read tag; do
-  tag=$(echo "$tag" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  if [ -z "$FIRST_TAG" ]; then
-    FIRST_TAG="$tag"
-    BASE_IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$FIRST_TAG"
-  fi
-done
+OLD_IFS="$IFS"
+IFS=','
+set -- $TAGS
+IFS="$OLD_IFS"
+
+# Trim first tag
+FIRST_TAG=$(echo "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+BASE_IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$FIRST_TAG"
+
+if [ -z "$FIRST_TAG" ]; then
+  echo "ERROR: Failed to determine first tag from TAGS=$TAGS"
+  exit 5
+fi
 
 # -----------------------------
 # Build image ONCE (first tag)
