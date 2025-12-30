@@ -54,6 +54,11 @@ steps:
 
   - name: Build and push containers.
     image: docker:latest
+    environment:
+      DOCKERHUB_USERNAME:
+        from_secret: DOCKERHUB_USERNAME
+      DOCKERHUB_TOKEN:
+        from_secret: DOCKERHUB_TOKEN
     commands:
       - apk add --no-cache jq
 
