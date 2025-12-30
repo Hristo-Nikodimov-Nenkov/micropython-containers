@@ -131,3 +131,68 @@ steps:
           echo "[INFO] Finished service: $service"
 
         done < services.order
+  
+  - name: Update DockerHub documentation.
+    image: docker:latest
+    environment:
+      DOCKERHUB_USERNAME:
+        from_secret: DOCKERHUB_USERNAME
+      DOCKERHUB_TOKEN:
+        from_secret: DOCKERHUB_TOKEN
+    commands:
+      - apk add --no-cache curl jq coreutils
+      - cd "$CI_WORKSPACE"
+
+      - |
+        echo "[INFO] Authenticating to Docker Hub API"
+        TOKEN=$(curl -s -X POST https://hub.docker.com/v2/users/login/ \
+          -H "Content-Type: application/json" \
+          -d "{\"username\": \"$DOCKERHUB_USERNAME\", \"password\": \"$DOCKERHUB_TOKEN\"}" \
+          | jq -r .token)
+
+        if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
+          echo "ERROR: Failed to authenticate to Docker Hub"
+          exit 1
+        fi
+
+        while read service; do
+          SERVICE_PATH="$CI_WORKSPACE/$service"
+          README="$SERVICE_PATH/README.md"
+          HASH_FILE="$SERVICE_PATH/readme_hash"
+          REPO="$DOCKERHUB_USERNAME/$service"
+
+          if [ ! -f "$README" ]; then
+            echo "[INFO] No README.md for $service — skipping"
+            continue
+          fi
+
+          CURRENT_HASH=$(sha256sum "$README" | awk '{print $1}')
+
+          if [ -f "$HASH_FILE" ]; then
+            SAVED_HASH=$(cat "$HASH_FILE")
+            if [ "$CURRENT_HASH" = "$SAVED_HASH" ]; then
+              echo "[INFO] README unchanged for $service — skipping"
+              continue
+            fi
+          fi
+
+          echo "[INFO] Uploading README for $service"
+
+          README_CONTENT=$(jq -Rs . < "$README")
+
+          curl -s -X PATCH \
+            "https://hub.docker.com/v2/repositories/$REPO/" \
+            -H "Authorization: JWT $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"full_description\": $README_CONTENT}" \
+            > /dev/null
+
+          if [ $? -ne 0 ]; then
+            echo "ERROR: Failed to update README for $service"
+            continue
+          fi
+
+          echo "$CURRENT_HASH" > "$HASH_FILE"
+          echo "[INFO] README updated for $service"
+
+        done < services.order
