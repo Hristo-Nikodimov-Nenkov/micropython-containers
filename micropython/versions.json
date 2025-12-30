@@ -1,11 +1,11 @@
 [
   {
-    "tags": "v1.20.0 v1.20",
+    "tags": "v1.20.0,v1.20",
     "micropython": "v1.20.0",
     "built": false
   },
   {
-    "tags": "v1.21.0 v1.21",
+    "tags": "v1.21.0,v1.21",
     "micropython": "v1.21.0",
     "built": false
   },
@@ -20,12 +20,12 @@
     "built": false
   },
   {
-    "tags": "v1.22.2 v1.22",
+    "tags": "v1.22.2,v1.22",
     "micropython": "v1.22.2",
     "built": false
   },
   {
-    "tags": "v1.23.0 v1.23",
+    "tags": "v1.23.0,v1.23",
     "micropython": "v1.23.0",
     "built": false
   },
@@ -35,12 +35,12 @@
     "built": false
   },
   {
-    "tags": "v1.24.1 v1.24",
+    "tags": "v1.24.1,v1.24",
     "micropython": "v1.24.1",
     "built": false
   },
   {
-    "tags": "v1.25.0 v1.25",
+    "tags": "v1.25.0,v1.25",
     "micropython": "v1.25.0",
     "built": false
   },
@@ -50,12 +50,12 @@
     "built": false
   },
   {
-    "tags": "v1.26.1 v1.26",
+    "tags": "v1.26.1,v1.26",
     "micropython": "v1.26.1",
     "built": false
   },
   {
-    "tags": "v1.27.0 v1.27 latest",
+    "tags": "v1.27.0,v1.27,latest",
     "micropython": "v1.27.0",
     "built": false
   }
