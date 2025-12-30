@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 # -----------------------------
@@ -12,12 +12,11 @@ BUILT="false"
 TAGS=""
 MICROPYTHON_VERSION=""
 ESP_IDF_VERSION=""
-BUILD_ARGS=()
 
 # -----------------------------
 # Parse flags from CLI
 # -----------------------------
-while [[ $# -gt 0 ]]; do
+while [ $# -gt 0 ]; do
   key="$1"
   case "$key" in
     --tags)
@@ -45,72 +44,74 @@ done
 # -----------------------------
 # Validate required fields
 # -----------------------------
-if [[ -z "$MICROPYTHON_VERSION" ]]; then
+if [ -z "$MICROPYTHON_VERSION" ]; then
   echo "Missing required property in versions.json (micropython)."
   exit 2
 fi
 
-if [[ -z "$ESP_IDF_VERSION" ]]; then
+if [ -z "$ESP_IDF_VERSION" ]; then
   echo "Missing required property in versions.json (esp_idf)."
-  exit 4
-fi
-
-if [[ -z "$TAGS" ]]; then
-  echo "Missing required property in versions.json (tags)."
   exit 3
 fi
 
-# -----------------------------
-# Build args
-# -----------------------------
-BUILD_ARGS+=( --build-arg "MICROPYTHON_VERSION=${MICROPYTHON_VERSION}" )
-BUILD_ARGS+=( --build-arg "ESP_IDF_VERSION=${ESP_IDF_VERSION}" )
+if [ -z "$TAGS" ]; then
+  echo "Missing required property in versions.json (tags)."
+  exit 4
+fi
 
 # -----------------------------
 # Split & trim tags
 # -----------------------------
-IFS=',' read -r -a TAG_ARRAY <<< "$TAGS"
-
-trim() {
-  echo "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
-}
-
-FIRST_TAG="$(trim "${TAG_ARRAY[0]}")"
-BASE_IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$FIRST_TAG"
+FIRST_TAG=""
+echo "$TAGS" | tr ',' '\n' | while read tag; do
+  tag=$(echo "$tag" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  if [ -z "$FIRST_TAG" ]; then
+    FIRST_TAG="$tag"
+    BASE_IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$FIRST_TAG"
+  fi
+done
 
 # -----------------------------
-# Build ONCE
+# Build image ONCE (first tag)
 # -----------------------------
-echo "📦 Building: $BASE_IMAGE"
-echo "Build args:"
-printf '  %s\n' "${BUILD_ARGS[@]}"
-
+echo "📦 Building Docker image: $BASE_IMAGE"
 docker build --rm \
-  "${BUILD_ARGS[@]}" \
+  --build-arg MICROPYTHON_VERSION="$MICROPYTHON_VERSION" \
+  --build-arg ESP_IDF_VERSION="$ESP_IDF_VERSION" \
   -t "$BASE_IMAGE" \
   "$DIRECTORY"
 
 # -----------------------------
-# Tag & Push ALL tags
+# Tag & push ALL tags
 # -----------------------------
-for tag in "${TAG_ARRAY[@]}"; do
-  tag="$(trim "$tag")"
+echo "$TAGS" | tr ',' '\n' | while read tag; do
+  tag=$(echo "$tag" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$tag"
 
-  if [[ "$tag" != "$FIRST_TAG" ]]; then
+  if [ "$tag" != "$FIRST_TAG" ]; then
     docker tag "$BASE_IMAGE" "$IMAGE"
   fi
 
-  echo "🚀 Pushing: $IMAGE"
+  echo "🚀 Pushing Docker image: $IMAGE"
   docker push "$IMAGE"
 done
 
 # -----------------------------
 # Cleanup local images
 # -----------------------------
-for tag in "${TAG_ARRAY[@]}"; do
-  tag="$(trim "$tag")"
+echo "$TAGS" | tr ',' '\n' | while read tag; do
+  tag=$(echo "$tag" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   docker rmi -f "$DOCKERHUB_USERNAME/$DIR_NAME:$tag" || true
 done
+
+# -----------------------------
+# Update versions.json
+# -----------------------------
+VERSION_JSON="$DIRECTORY/versions.json"
+TMP_JSON="$VERSION_JSON.tmp"
+
+jq --arg mp "$MICROPYTHON_VERSION" '
+  map(if .micropython == $mp then .built = true else . end)
+' "$VERSION_JSON" > "$TMP_JSON" && mv "$TMP_JSON" "$VERSION_JSON"
 
 echo "✔ Completed: $DIR_NAME (micropython=$MICROPYTHON_VERSION, esp-idf=$ESP_IDF_VERSION, built=$BUILT)"

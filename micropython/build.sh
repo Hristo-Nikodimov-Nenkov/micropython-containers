@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 # -----------------------------
@@ -8,16 +8,15 @@ DIRECTORY="$1"
 shift
 DIR_NAME=$(basename "$DIRECTORY")
 
-BUILT="false"
+BUILT=false
 TAGS=""
 MICROPYTHON_VERSION=""
 
 # -----------------------------
-# Parse flags from CLI
+# Parse flags
 # -----------------------------
 while [ $# -gt 0 ]; do
-  key="$1"
-  case "$key" in
+  case "$1" in
     --tag|--tags)
       TAGS="$2"
       shift 2
@@ -37,7 +36,7 @@ while [ $# -gt 0 ]; do
 done
 
 # -----------------------------
-# Validate required properties
+# Validate required fields
 # -----------------------------
 if [ -z "$MICROPYTHON_VERSION" ]; then
   echo "Missing required property in versions.json (micropython)."
@@ -50,20 +49,23 @@ if [ -z "$TAGS" ]; then
 fi
 
 # -----------------------------
-# Split & trim tags
+# Helpers
 # -----------------------------
-IFS=',' read -r -a TAG_ARRAY <<< "$TAGS"
-
 trim() {
   echo "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
 }
 
 # -----------------------------
-# Build image ONCE (first tag)
+# Get first tag
 # -----------------------------
-FIRST_TAG="$(trim "${TAG_ARRAY[0]}")"
+FIRST_TAG=$(printf '%s\n' "$TAGS" | awk -F',' '{print $1}')
+FIRST_TAG=$(trim "$FIRST_TAG")
+
 IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$FIRST_TAG"
 
+# -----------------------------
+# Build ONCE
+# -----------------------------
 echo "Building Docker image: $IMAGE"
 docker build --rm \
   --build-arg MICROPYTHON_VERSION="$MICROPYTHON_VERSION" \
@@ -73,8 +75,8 @@ docker build --rm \
 # -----------------------------
 # Tag & push ALL tags
 # -----------------------------
-for tag in "${TAG_ARRAY[@]}"; do
-  tag="$(trim "$tag")"
+echo "$TAGS" | tr ',' '\n' | while read tag; do
+  tag=$(trim "$tag")
   FULL_IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$tag"
 
   if [ "$tag" != "$FIRST_TAG" ]; then
@@ -88,9 +90,9 @@ done
 # -----------------------------
 # Cleanup local images
 # -----------------------------
-for tag in "${TAG_ARRAY[@]}"; do
-  tag="$(trim "$tag")"
-  docker rmi -f "$DOCKERHUB_USERNAME/$DIR_NAME:$tag" || true
+echo "$TAGS" | tr ',' '\n' | while read tag; do
+  tag=$(trim "$tag")
+  docker rmi -f "$DOCKERHUB_USERNAME/$DIR_NAME:$tag" >/dev/null 2>&1 || true
 done
 
 # -----------------------------
@@ -100,6 +102,7 @@ VERSION_JSON="$DIRECTORY/versions.json"
 
 jq --arg mp "$MICROPYTHON_VERSION" '
   map(if .micropython == $mp then .built = true else . end)
-' "$VERSION_JSON" > "$VERSION_JSON.tmp" && mv "$VERSION_JSON.tmp" "$VERSION_JSON"
+' "$VERSION_JSON" > "$VERSION_JSON.tmp" &&
+mv "$VERSION_JSON.tmp" "$VERSION_JSON"
 
 echo "Build and push completed for $DIR_NAME ($MICROPYTHON_VERSION)"
