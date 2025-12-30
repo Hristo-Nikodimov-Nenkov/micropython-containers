@@ -187,6 +187,8 @@ steps:
 
   - name: Docker cleanup
     image: docker:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     commands: |
       docker image prune -f
       docker builder prune -f
