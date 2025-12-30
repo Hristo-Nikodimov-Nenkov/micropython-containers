@@ -65,7 +65,7 @@ steps:
       - git config user.name "$GIT_USER_NAME"
       - git config user.email "$GIT_USER_EMAIL"
       - git config --add safe.directory "$CI_WORKSPACE"
-      - git remote set-url origin "https://${GITHUB_TOKEN}@github.com/${CI_REPO_OWNER}/${CI_REPO_NAME}.git"
+      - git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${CI_REPO_OWNER}/${CI_REPO_NAME}.git"
       - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
       - |
@@ -74,7 +74,7 @@ steps:
           HASH_FILE="$SERVICE_PATH/service_hash"
           echo "[INFO] Processing service: $service"
 
-          CURRENT_HASH=$(sha256sum "$SERVICE_PATH/Dockerfile" "$SERVICE_PATH/build_firmware.sh" "$SERVICE_PATH/build.sh" | sha256sum | awk '{print $1}')
+          CURRENT_HASH=$(sha256sum "$SERVICE_PATH/Dockerfile" "$SERVICE_PATH/build_firmware.sh" "$SERVICE_PATH/build.sh" | awk '{print $1}')
           FULL_REBUILD=false
           if [ ! -f "$HASH_FILE" ] || [ "$(cat "$HASH_FILE")" != "$CURRENT_HASH" ]; then
             FULL_REBUILD=true
