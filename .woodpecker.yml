@@ -92,16 +92,16 @@ steps:
             version=$(printf '%s\n' "$obj" | jq -r '.micropython')
 
             FLAGS=""
-            
-            printf '%s\n' "$obj" | jq -r 'to_entries[] | "\(.key)\u0000\(.value|tostring)"' |
-            while IFS= read -r entry; do
-              key="${entry%%$'\0'*}"
-              value="${entry#*$'\0'}"
-            
+
+            for key in $(printf '%s\n' "$obj" | jq -r 'keys[]'); do
+              value=$(printf '%s\n' "$obj" | jq -r --arg k "$key" '.[$k] | tostring')
               FLAGS="$FLAGS --$key $value"
             done
 
+            # Remove any built flag coming from JSON
+            FLAGS=$(printf '%s\n' "$FLAGS" | sed 's/--built [^ ]*//g')
 
+            # Force built=false on full rebuild
             if [ "$FULL_REBUILD" = "true" ]; then
               FLAGS="$FLAGS --built false"
             fi
