@@ -4,7 +4,7 @@ when:
     - manual
 
 steps:
-  - name: Set-up git.
+  - name: Set-up git
     image: alpine:latest
     environment:
       GIT_USER_NAME:
@@ -20,7 +20,7 @@ steps:
       - git config user.email "$GIT_USER_EMAIL"
       - git config --add safe.directory "$CI_WORKSPACE"
 
-  - name: Check services.
+  - name: Check services
     image: alpine:latest
     commands:
       - apk add --no-cache jq
@@ -62,11 +62,16 @@ steps:
     commands:
       - apk add --no-cache jq coreutils git
       - cd "$CI_WORKSPACE"
+
+      # Trim repo owner/name
+      - CI_REPO_OWNER=$(echo "$CI_REPO_OWNER" | xargs)
+      - CI_REPO_NAME=$(echo "$CI_REPO_NAME" | xargs)
+
       - git config user.name "$GIT_USER_NAME"
       - git config user.email "$GIT_USER_EMAIL"
       - git config --add safe.directory "$CI_WORKSPACE"
-      - git remote set-url origin \
-          "https://x-access-token:${GITHUB_TOKEN}@github.com/${CI_REPO_OWNER}/${CI_REPO_NAME}.git"
+      - git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${CI_REPO_OWNER}/${CI_REPO_NAME}.git"
+
       - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
       - |
@@ -91,8 +96,10 @@ steps:
           # Commit service_hash immediately
           echo "$CURRENT_HASH" > "$HASH_FILE"
           git add "$HASH_FILE"
-          git commit -m "CI: update service_hash for $service [skip ci]" || true
-          git push origin HEAD || true
+          git diff --cached --quiet || (
+            git commit -m "CI: update service_hash for $service [skip ci]"
+            git push origin HEAD || true
+          )
           echo "[INFO] service_hash committed for $service"
 
           jq -c '.[]' "$SERVICE_PATH/versions.json" | while read obj; do
@@ -104,8 +111,8 @@ steps:
               FLAGS="$FLAGS --$key $value"
             done
 
+            # Remove built flag
             FLAGS=$(printf '%s\n' "$FLAGS" | sed 's/--built [^ ]*//g')
-
             if [ "$FULL_REBUILD" = "true" ]; then
               FLAGS="$FLAGS --built false"
             fi
@@ -130,8 +137,10 @@ steps:
                 mv "$tmpfile" "$SERVICE_PATH/versions.json"
 
               git add "$SERVICE_PATH/versions.json"
-              git commit -m "CI: mark $service $version as built [skip ci]" || true
-              git push origin HEAD || true
+              git diff --cached --quiet || (
+                git commit -m "CI: mark $service $version as built [skip ci]"
+                git push origin HEAD || true
+              )
               echo "[INFO] versions.json committed for $service $version"
             fi
           done
@@ -139,7 +148,7 @@ steps:
           echo "[INFO] Finished service: $service"
         done < services.order
 
-  - name: Update DockerHub documentation.
+  - name: Update DockerHub documentation
     image: docker:latest
     environment:
       DOCKERHUB_USERNAME:
@@ -149,7 +158,6 @@ steps:
     commands:
       - apk add --no-cache curl jq coreutils
       - cd "$CI_WORKSPACE"
-
       - |
         echo "[INFO] Authenticating to Docker Hub API"
         TOKEN=$(curl -s -X POST https://hub.docker.com/v2/users/login/ \
@@ -174,13 +182,9 @@ steps:
           fi
 
           CURRENT_HASH=$(sha256sum "$README" | awk '{print $1}')
-
-          if [ -f "$HASH_FILE" ]; then
-            SAVED_HASH=$(cat "$HASH_FILE")
-            if [ "$CURRENT_HASH" = "$SAVED_HASH" ]; then
-              echo "[INFO] README unchanged for $service — skipping"
-              continue
-            fi
+          if [ -f "$HASH_FILE" ] && [ "$CURRENT_HASH" = "$(cat "$HASH_FILE")" ]; then
+            echo "[INFO] README unchanged for $service — skipping"
+            continue
           fi
 
           echo "[INFO] Uploading README for $service"
@@ -190,8 +194,7 @@ steps:
             "https://hub.docker.com/v2/repositories/$REPO/" \
             -H "Authorization: JWT $TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"full_description\": $README_CONTENT}" \
-            > /dev/null
+            -d "{\"full_description\": $README_CONTENT}" > /dev/null
 
           if [ $? -ne 0 ]; then
             echo "ERROR: Failed to update README for $service"
@@ -202,7 +205,7 @@ steps:
           echo "[INFO] README updated for $service"
         done < services.order
 
-  - name: Docker cleanup.
+  - name: Docker cleanup
     image: docker:latest
     commands:
       - docker image prune -f
