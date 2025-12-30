@@ -24,23 +24,7 @@ steps:
     image: alpine:latest
     commands: |
       apk add --no-cache jq
-      SERVICES_JSON="$CI_WORKSPACE/services.json"
-
-      if [ ! -f "$SERVICES_JSON" ]; then
-        echo "ERROR: services.json missing"
-        exit 21
-      fi
-
       jq -r 'to_entries | sort_by(.value.order) | .[].key' services.json > services.order
-      cat services.order
-
-      while read -r service; do
-        SERVICE_PATH="$CI_WORKSPACE/$service"
-        [ -d "$SERVICE_PATH" ] || exit 22
-        [ -f "$SERVICE_PATH/Dockerfile" ] || exit 23
-        [ -f "$SERVICE_PATH/build_firmware.sh" ] || exit 24
-        [ -f "$SERVICE_PATH/versions.json" ] || exit 25
-      done < services.order
 
   - name: Build and push containers
     image: docker:latest
@@ -50,23 +34,15 @@ steps:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
         from_secret: DOCKERHUB_TOKEN
-      GIT_USER_NAME:
-        from_secret: GIT_USER_NAME
-      GIT_USER_EMAIL:
-        from_secret: GIT_USER_EMAIL
       GITHUB_TOKEN:
         from_secret: GITHUB_TOKEN
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     commands: |
-      apk add --no-cache jq coreutils git
+      apk add --no-cache jq git coreutils
       cd "$CI_WORKSPACE"
 
-      git config user.name "$GIT_USER_NAME"
-      git config user.email "$GIT_USER_EMAIL"
-      git config --add safe.directory "$CI_WORKSPACE"
       git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/$CI_REPO_OWNER/$CI_REPO_NAME.git
-
       echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
       while read service; do
@@ -89,12 +65,14 @@ steps:
         git commit -m "CI: update service_hash for $service [skip ci]" || true
         git push origin HEAD || true
 
-        jq -c '.[]' "$SERVICE_PATH/versions.json" | while read obj; do
+        jq -c '.[]' "$SERVICE_PATH/versions.json" > /tmp/versions.list
+
+        while read obj; do
           VERSION=$(printf '%s\n' "$obj" | jq -r '.micropython')
           BUILT=$(printf '%s\n' "$obj" | jq -r '.built')
 
           if [ "$FULL_REBUILD" = "false" ] && [ "$BUILT" = "true" ]; then
-            echo "[INFO] Skipping $service $VERSION (already built)"
+            echo "[INFO] Skipping $service $VERSION"
             continue
           fi
 
@@ -108,17 +86,16 @@ steps:
           FLAGS="$FLAGS --built false"
 
           if sh "$SERVICE_PATH/build.sh" "$SERVICE_PATH" $FLAGS; then
-            tmpfile=$(mktemp)
-            jq --arg micropython "$VERSION" \
-               'map(if .micropython == $micropython then .built = true else . end)' \
-               "$SERVICE_PATH/versions.json" > "$tmpfile" &&
-               mv "$tmpfile" "$SERVICE_PATH/versions.json"
+            tmp=$(mktemp)
+            jq --arg v "$VERSION" \
+              'map(if .micropython == $v then .built = true else . end)' \
+              "$SERVICE_PATH/versions.json" > "$tmp" && mv "$tmp" "$SERVICE_PATH/versions.json"
 
             git add "$SERVICE_PATH/versions.json"
             git commit -m "CI: mark $service $VERSION as built [skip ci]" || true
             git push origin HEAD || true
           fi
-        done
+        done < /tmp/versions.list
       done < services.order
 
   - name: Update DockerHub documentation
@@ -128,8 +105,10 @@ steps:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
         from_secret: DOCKERHUB_TOKEN
+      GITHUB_TOKEN:
+        from_secret: GITHUB_TOKEN
     commands: |
-      apk add --no-cache curl jq coreutils
+      apk add --no-cache curl jq git
       cd "$CI_WORKSPACE"
 
       TOKEN=$(curl -s -X POST https://hub.docker.com/v2/users/login/ \
@@ -143,8 +122,8 @@ steps:
 
         [ -f "$README" ] || continue
 
-        CURRENT_HASH=$(sha256sum "$README" | awk '{print $1}')
-        [ -f "$HASH_FILE" ] && [ "$CURRENT_HASH" = "$(cat "$HASH_FILE")" ] && continue
+        HASH=$(sha256sum "$README" | awk '{print $1}')
+        [ -f "$HASH_FILE" ] && [ "$HASH" = "$(cat "$HASH_FILE")" ] && continue
 
         curl -s -X PATCH \
           "https://hub.docker.com/v2/repositories/$DOCKERHUB_USERNAME/$service/" \
@@ -153,7 +132,10 @@ steps:
           -d "{\"full_description\": $(jq -Rs . < "$README")}" \
           > /dev/null
 
-        echo "$CURRENT_HASH" > "$HASH_FILE"
+        echo "$HASH" > "$HASH_FILE"
+        git add "$HASH_FILE"
+        git commit -m "CI: update readme_hash for $service [skip ci]" || true
+        git push origin HEAD || true
       done < services.order
 
   - name: Docker cleanup
