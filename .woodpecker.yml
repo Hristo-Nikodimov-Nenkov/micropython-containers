@@ -25,22 +25,21 @@ steps:
     commands: |
       apk add --no-cache jq
       SERVICES_JSON="$CI_WORKSPACE/services.json"
+
       if [ ! -f "$SERVICES_JSON" ]; then
-        echo "ERROR: services.json missing at repo root ($SERVICES_JSON)"
+        echo "ERROR: services.json missing"
         exit 21
       fi
-      echo "[INFO] services.json found at $SERVICES_JSON"
+
       jq -r 'to_entries | sort_by(.value.order) | .[].key' services.json > services.order
       cat services.order
-      while read -r service; do
-        [ -d "$CI_WORKSPACE/$service" ] || exit 22
-      done < services.order
+
       while read -r service; do
         SERVICE_PATH="$CI_WORKSPACE/$service"
-        [ -f "$SERVICE_PATH/Dockerfile" ] || { echo "ERROR: Dockerfile missing in $SERVICE_PATH"; exit 23; }
-        [ -f "$SERVICE_PATH/build_firmware.sh" ] || { echo "ERROR: build_firmware.sh missing in $SERVICE_PATH"; exit 24; }
-        [ -f "$SERVICE_PATH/versions.json" ] || { echo "ERROR: versions.json missing in $SERVICE_PATH"; exit 25; }
-        echo "[INFO] Required files present in $SERVICE_PATH"
+        [ -d "$SERVICE_PATH" ] || exit 22
+        [ -f "$SERVICE_PATH/Dockerfile" ] || exit 23
+        [ -f "$SERVICE_PATH/build_firmware.sh" ] || exit 24
+        [ -f "$SERVICE_PATH/versions.json" ] || exit 25
       done < services.order
 
   - name: Build and push containers
@@ -62,32 +61,43 @@ steps:
     commands: |
       apk add --no-cache jq coreutils git
       cd "$CI_WORKSPACE"
+
       git config user.name "$GIT_USER_NAME"
       git config user.email "$GIT_USER_EMAIL"
       git config --add safe.directory "$CI_WORKSPACE"
       git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/$CI_REPO_OWNER/$CI_REPO_NAME.git
+
       echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
       while read service; do
         SERVICE_PATH="$CI_WORKSPACE/$service"
         HASH_FILE="$SERVICE_PATH/service_hash"
-        echo "[INFO] Processing service: $service"
 
-        CURRENT_HASH=$(sha256sum "$SERVICE_PATH/Dockerfile" "$SERVICE_PATH/build_firmware.sh" "$SERVICE_PATH/build.sh" | awk '{print $1}')
+        CURRENT_HASH=$(sha256sum \
+          "$SERVICE_PATH/Dockerfile" \
+          "$SERVICE_PATH/build_firmware.sh" \
+          "$SERVICE_PATH/build.sh" \
+          | sha256sum | awk '{print $1}')
+
         FULL_REBUILD=false
         if [ ! -f "$HASH_FILE" ] || [ "$(cat "$HASH_FILE")" != "$CURRENT_HASH" ]; then
           FULL_REBUILD=true
-          echo "[INFO] Full rebuild required for $service"
         fi
 
         echo "$CURRENT_HASH" > "$HASH_FILE"
         git add "$HASH_FILE"
         git commit -m "CI: update service_hash for $service [skip ci]" || true
         git push origin HEAD || true
-        echo "[INFO] service_hash committed for $service"
 
         jq -c '.[]' "$SERVICE_PATH/versions.json" | while read obj; do
-          version=$(printf '%s\n' "$obj" | jq -r '.micropython')
+          VERSION=$(printf '%s\n' "$obj" | jq -r '.micropython')
+          BUILT=$(printf '%s\n' "$obj" | jq -r '.built')
+
+          if [ "$FULL_REBUILD" = "false" ] && [ "$BUILT" = "true" ]; then
+            echo "[INFO] Skipping $service $VERSION (already built)"
+            continue
+          fi
+
           FLAGS=""
           for key in $(printf '%s\n' "$obj" | jq -r 'keys[]'); do
             value=$(printf '%s\n' "$obj" | jq -r --arg k "$key" '.[$k] | tostring')
@@ -95,35 +105,20 @@ steps:
           done
 
           FLAGS=$(printf '%s\n' "$FLAGS" | sed 's/--built [^ ]*//g')
-          if [ "$FULL_REBUILD" = "true" ]; then
-            FLAGS="$FLAGS --built false"
-          fi
-
-          echo "[INFO] Running build.sh for $service, version $version"
-          echo "       Flags:$FLAGS"
+          FLAGS="$FLAGS --built false"
 
           if sh "$SERVICE_PATH/build.sh" "$SERVICE_PATH" $FLAGS; then
-            BUILD_RESULT=true
-            echo "[INFO] Build succeeded for version $version"
-          else
-            BUILD_RESULT=false
-            echo "[WARN] Build failed for version $version (continuing)"
-          fi
-
-          if [ "$BUILD_RESULT" = "true" ]; then
             tmpfile=$(mktemp)
-            jq --argjson built "$BUILD_RESULT" --arg micropython "$version" \
-              'map(if .micropython == $micropython then .built = $built else . end)' \
-              "$SERVICE_PATH/versions.json" > "$tmpfile" && mv "$tmpfile" "$SERVICE_PATH/versions.json"
+            jq --arg micropython "$VERSION" \
+               'map(if .micropython == $micropython then .built = true else . end)' \
+               "$SERVICE_PATH/versions.json" > "$tmpfile" &&
+               mv "$tmpfile" "$SERVICE_PATH/versions.json"
 
             git add "$SERVICE_PATH/versions.json"
-            git commit -m "CI: mark $service $version as built [skip ci]" || true
+            git commit -m "CI: mark $service $VERSION as built [skip ci]" || true
             git push origin HEAD || true
-            echo "[INFO] versions.json committed for $service $version"
           fi
         done
-
-        echo "[INFO] Finished service: $service"
       done < services.order
 
   - name: Update DockerHub documentation
@@ -136,53 +131,29 @@ steps:
     commands: |
       apk add --no-cache curl jq coreutils
       cd "$CI_WORKSPACE"
-      echo "[INFO] Authenticating to Docker Hub API"
+
       TOKEN=$(curl -s -X POST https://hub.docker.com/v2/users/login/ \
         -H "Content-Type: application/json" \
-        -d "{\"username\": \"$DOCKERHUB_USERNAME\", \"password\": \"$DOCKERHUB_TOKEN\"}" \
+        -d "{\"username\":\"$DOCKERHUB_USERNAME\",\"password\":\"$DOCKERHUB_TOKEN\"}" \
         | jq -r .token)
-      if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-        echo "ERROR: Failed to authenticate to Docker Hub"
-        exit 1
-      fi
 
       while read service; do
-        SERVICE_PATH="$CI_WORKSPACE/$service"
-        README="$SERVICE_PATH/README.md"
-        HASH_FILE="$SERVICE_PATH/readme_hash"
-        REPO="$DOCKERHUB_USERNAME/$service"
+        README="$CI_WORKSPACE/$service/README.md"
+        HASH_FILE="$CI_WORKSPACE/$service/readme_hash"
 
-        if [ ! -f "$README" ]; then
-          echo "[INFO] No README.md for $service — skipping"
-          continue
-        fi
+        [ -f "$README" ] || continue
 
         CURRENT_HASH=$(sha256sum "$README" | awk '{print $1}')
-        if [ -f "$HASH_FILE" ]; then
-          SAVED_HASH=$(cat "$HASH_FILE")
-          if [ "$CURRENT_HASH" = "$SAVED_HASH" ]; then
-            echo "[INFO] README unchanged for $service — skipping"
-            continue
-          fi
-        fi
-
-        echo "[INFO] Uploading README for $service"
-        README_CONTENT=$(jq -Rs . < "$README")
+        [ -f "$HASH_FILE" ] && [ "$CURRENT_HASH" = "$(cat "$HASH_FILE")" ] && continue
 
         curl -s -X PATCH \
-          "https://hub.docker.com/v2/repositories/$REPO/" \
+          "https://hub.docker.com/v2/repositories/$DOCKERHUB_USERNAME/$service/" \
           -H "Authorization: JWT $TOKEN" \
           -H "Content-Type: application/json" \
-          -d "{\"full_description\": $README_CONTENT}" \
+          -d "{\"full_description\": $(jq -Rs . < "$README")}" \
           > /dev/null
 
-        if [ $? -ne 0 ]; then
-          echo "ERROR: Failed to update README for $service"
-          continue
-        fi
-
         echo "$CURRENT_HASH" > "$HASH_FILE"
-        echo "[INFO] README updated for $service"
       done < services.order
 
   - name: Docker cleanup
