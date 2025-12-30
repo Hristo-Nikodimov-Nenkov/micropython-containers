@@ -92,12 +92,15 @@ steps:
             version=$(printf '%s\n' "$obj" | jq -r '.micropython')
 
             FLAGS=""
-
-            for kv in $(printf '%s\n' "$obj" | jq -r 'to_entries[] | "\(.key)=\(.value|tostring)"'); do
-              key=$(printf '%s\n' "$kv" | cut -d= -f1)
-              value=$(printf '%s\n' "$kv" | cut -d= -f2-)
+            
+            printf '%s\n' "$obj" | jq -r 'to_entries[] | "\(.key)\u0000\(.value|tostring)"' |
+            while IFS= read -r entry; do
+              key="${entry%%$'\0'*}"
+              value="${entry#*$'\0'}"
+            
               FLAGS="$FLAGS --$key $value"
             done
+
 
             if [ "$FULL_REBUILD" = "true" ]; then
               FLAGS="$FLAGS --built false"
