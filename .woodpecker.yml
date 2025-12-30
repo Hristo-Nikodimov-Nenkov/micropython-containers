@@ -51,8 +51,11 @@ steps:
 
           echo "[INFO] Required files present in $SERVICE_PATH"
         done < services.order
-        
+
   - name: Build and push containers.
     image: docker:latest
     commands:
       - apk add --no-cache jq
+
+      - cd $CI_WORKSPACE
+      - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
