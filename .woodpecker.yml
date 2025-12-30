@@ -196,3 +196,43 @@ steps:
           echo "[INFO] README updated for $service"
 
         done < services.order
+
+  - name: Update repository
+    image: alpine:latest
+    environment:
+      GIT_USER_NAME:
+        from_secret: GIT_USER_NAME
+      GIT_USER_EMAIL:
+        from_secret: GIT_USER_EMAIL
+      GITHUB_TOKEN:
+        from_secret: GITHUB_TOKEN
+    commands:
+      - apk add --no-cache git
+
+      - cd "$CI_WORKSPACE"
+
+      - git config user.name "$GIT_USER_NAME"
+      - git config user.email "$GIT_USER_EMAIL"
+      - git config --add safe.directory "$CI_WORKSPACE"
+
+      - |
+        git remote set-url origin \
+          "https://x-access-token:${GITHUB_TOKEN}@github.com/${CI_REPO_OWNER}/${CI_REPO_NAME}.git"
+
+      - git status --porcelain
+
+      - |
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "[INFO] Changes detected, committing"
+          git add .
+          git commit -m "CI: update build state [skip ci]"
+          git push origin HEAD
+        else
+          echo "[INFO] No changes to commit"
+        fi
+
+  - name: Docker cleanup.
+    image: docker:latest
+    commands:
+      - docker image prune -f
+      - docker builder prune -f
