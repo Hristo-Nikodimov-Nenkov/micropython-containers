@@ -52,6 +52,6 @@
   {
     "tags": "v1.27.0,v1.27,latest",
     "micropython": "v1.27.0",
-    "built": false
+    "built": true
   }
 ]
