@@ -9,17 +9,19 @@ shift
 DIR_NAME=$(basename "$DIRECTORY")
 
 BUILT="false"
-TAG=""
+TAGS=""
 MICROPYTHON_VERSION=""
+ESP_IDF_VERSION=""
+BUILD_ARGS=()
 
 # -----------------------------
 # Parse flags from CLI
 # -----------------------------
 while [[ $# -gt 0 ]]; do
   key="$1"
-  case $key in
-    --tag)
-      TAG="$2"
+  case "$key" in
+    --tags)
+      TAGS="$2"
       shift 2
       ;;
     --micropython)
@@ -35,11 +37,11 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     *)
-      # Ignore unknown flags
       shift 2
       ;;
   esac
 done
+
 # -----------------------------
 # Validate required fields
 # -----------------------------
@@ -49,31 +51,66 @@ if [[ -z "$MICROPYTHON_VERSION" ]]; then
 fi
 
 if [[ -z "$ESP_IDF_VERSION" ]]; then
-  echo "Missing required property in versions.json (esp_idf_version)."
+  echo "Missing required property in versions.json (esp_idf)."
   exit 4
 fi
 
-if [[ -z "$TAG" ]]; then
-  echo "Missing required property in versions.json (tag)."
+if [[ -z "$TAGS" ]]; then
+  echo "Missing required property in versions.json (tags)."
   exit 3
 fi
 
-# Required args must be included
+# -----------------------------
+# Build args
+# -----------------------------
 BUILD_ARGS+=( --build-arg "MICROPYTHON_VERSION=${MICROPYTHON_VERSION}" )
 BUILD_ARGS+=( --build-arg "ESP_IDF_VERSION=${ESP_IDF_VERSION}" )
 
 # -----------------------------
-# Build and Push
+# Split & trim tags
 # -----------------------------
-echo "📦 Building: $DOCKERHUB_USERNAME/$DIR_NAME:$TAG"
+IFS=',' read -r -a TAG_ARRAY <<< "$TAGS"
+
+trim() {
+  echo "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+}
+
+FIRST_TAG="$(trim "${TAG_ARRAY[0]}")"
+BASE_IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$FIRST_TAG"
+
+# -----------------------------
+# Build ONCE
+# -----------------------------
+echo "📦 Building: $BASE_IMAGE"
 echo "Build args:"
 printf '  %s\n' "${BUILD_ARGS[@]}"
 
 docker build --rm \
   "${BUILD_ARGS[@]}" \
-  -t "$DOCKERHUB_USERNAME/$DIR_NAME:$TAG" \
+  -t "$BASE_IMAGE" \
   "$DIRECTORY"
 
-docker push "$DOCKERHUB_USERNAME/$DIR_NAME:$TAG"
+# -----------------------------
+# Tag & Push ALL tags
+# -----------------------------
+for tag in "${TAG_ARRAY[@]}"; do
+  tag="$(trim "$tag")"
+  IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$tag"
 
-echo "✔ Completed: $DOCKERHUB_USERNAME/$DIR_NAME:$TAG (built=$BUILT)"
+  if [[ "$tag" != "$FIRST_TAG" ]]; then
+    docker tag "$BASE_IMAGE" "$IMAGE"
+  fi
+
+  echo "🚀 Pushing: $IMAGE"
+  docker push "$IMAGE"
+done
+
+# -----------------------------
+# Cleanup local images
+# -----------------------------
+for tag in "${TAG_ARRAY[@]}"; do
+  tag="$(trim "$tag")"
+  docker rmi -f "$DOCKERHUB_USERNAME/$DIR_NAME:$tag" || true
+done
+
+echo "✔ Completed: $DIR_NAME (micropython=$MICROPYTHON_VERSION, esp-idf=$ESP_IDF_VERSION, built=$BUILT)"
