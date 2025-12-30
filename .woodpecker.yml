@@ -65,9 +65,10 @@ steps:
       - apk add --no-cache jq coreutils
       - cd "$CI_WORKSPACE"
 
-      - |
-        echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+      # Docker login
+      - echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
+      - |
         while read service; do
           SERVICE_PATH="$CI_WORKSPACE/$service"
           HASH_FILE="$SERVICE_PATH/service_hash"
@@ -77,13 +78,13 @@ steps:
           CURRENT_HASH=$(sha256sum \
             "$SERVICE_PATH/Dockerfile" \
             "$SERVICE_PATH/build_firmware.sh" \
-            "$SERVICE_PATH/build.sh" | sha256sum | awk '{print $1}')
+            "$SERVICE_PATH/build.sh" \
+            | sha256sum | awk '{print $1}')
 
           FULL_REBUILD=false
-          if [ ! -f "$HASH_FILE" ]; then
+          if [ ! -f "$HASH_FILE" ] || [ "$(cat "$HASH_FILE")" != "$CURRENT_HASH" ]; then
             FULL_REBUILD=true
-          elif [ "$(cat "$HASH_FILE")" != "$CURRENT_HASH" ]; then
-            FULL_REBUILD=true
+            echo "[INFO] Full rebuild required for $service"
           fi
 
           jq -c '.[]' "$SERVICE_PATH/versions.json" | while read obj; do
@@ -91,9 +92,11 @@ steps:
             version=$(printf '%s\n' "$obj" | jq -r '.micropython')
 
             FLAGS=""
-            printf '%s\n' "$obj" | jq -r 'to_entries[] | "--" + .key + " " + (.value|tostring)' |
-            while read flag value; do
-              FLAGS="$FLAGS $flag $value"
+
+            for kv in $(printf '%s\n' "$obj" | jq -r 'to_entries[] | "\(.key)=\(.value|tostring)"'); do
+              key=$(printf '%s\n' "$kv" | cut -d= -f1)
+              value=$(printf '%s\n' "$kv" | cut -d= -f2-)
+              FLAGS="$FLAGS --$key $value"
             done
 
             if [ "$FULL_REBUILD" = "true" ]; then
@@ -114,8 +117,8 @@ steps:
             tmpfile=$(mktemp)
             jq --argjson built "$BUILD_RESULT" --arg micropython "$version" \
               'map(if .micropython == $micropython then .built = $built else . end)' \
-              "$SERVICE_PATH/versions.json" > "$tmpfile" \
-              && mv "$tmpfile" "$SERVICE_PATH/versions.json"
+              "$SERVICE_PATH/versions.json" > "$tmpfile" &&
+              mv "$tmpfile" "$SERVICE_PATH/versions.json"
 
           done
 
