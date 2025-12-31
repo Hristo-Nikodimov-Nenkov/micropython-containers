@@ -1,5 +1,5 @@
 ARG MICROPYTHON_VERSION
-FROM rav3nh01m/micropython:${MICROPYTHON_VERSION} AS base
+FROM $DOCKERHUB_USERNAME/micropython:$MICROPYTHON_VERSION AS base
 
 ARG ESP_IDF_VERSION
 
@@ -8,7 +8,7 @@ RUN test -n "$ESP_IDF_VERSION" || (echo "ERROR: ESP_IDF_VERSION build-arg is req
 RUN echo "Installing ESP-IDF ${ESP_IDF_VERSION}..."
 
 WORKDIR /opt
-RUN git clone -b ${ESP_IDF_VERSION} \
+RUN git clone -b $ESP_IDF_VERSION \
     --recursive \ 
     https://github.com/espressif/esp-idf.git
 

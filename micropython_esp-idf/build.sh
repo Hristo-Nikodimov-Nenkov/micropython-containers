@@ -80,7 +80,13 @@ fi
 # -----------------------------
 # Build image ONCE (first tag)
 # -----------------------------
+echo "============================================================================"
 echo "📦 Building Docker image: $BASE_IMAGE"
+echo "============================================================================"
+echo " Base image: $DOCKERHUB_USERNAME/micropython:$MICROPYTHON_VERSION"
+echo " MicroPython: $MICROPYTHON_VERSION"
+echo " ESP-IDF: $ESP_IDF_VERSION"
+echo "----------------------------------------------------------------------------"
 docker build --rm \
   --build-arg MICROPYTHON_VERSION="$MICROPYTHON_VERSION" \
   --build-arg ESP_IDF_VERSION="$ESP_IDF_VERSION" \
