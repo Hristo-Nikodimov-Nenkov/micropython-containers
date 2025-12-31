@@ -66,7 +66,6 @@ steps:
         fi
 
         echo "$CURRENT_HASH" > "$HASH_FILE"
-        git pull --rebase origin main
         git add "$HASH_FILE"
         git commit -m "CI: update service_hash for $service [skip ci]" || true
         git push origin HEAD || true
@@ -94,33 +93,32 @@ steps:
           ATTEMPT=1
           MAX_ATTEMPTS=3
           BUILD_OK=false
-          
+
           while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
             echo "[INFO] Build attempt $ATTEMPT/$MAX_ATTEMPTS for $service $VERSION"
-          
+
             if sh "$SERVICE_PATH/build.sh" "$SERVICE_PATH" $FLAGS; then
               BUILD_OK=true
               echo "[INFO] Build succeeded for $service $VERSION"
               sleep 10
               break
             fi
-          
+
             echo "[WARN] Build failed for $service $VERSION (attempt $ATTEMPT)"
             ATTEMPT=$((ATTEMPT + 1))
-          
+
             if [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; then
               echo "[INFO] Cooling down for 15s before retry"
               sleep 15
             fi
           done
-          
+
           if [ "$BUILD_OK" = "true" ]; then
             tmp=$(mktemp)
             jq --arg v "$VERSION" \
               'map(if .micropython == $v then .built = true else . end)' \
               "$SERVICE_PATH/versions.json" > "$tmp" && mv "$tmp" "$SERVICE_PATH/versions.json"
-          
-            git pull --rebase origin main
+
             git add "$SERVICE_PATH/versions.json"
             git commit -m "CI: mark $service $VERSION as built [skip ci]" || true
             git push origin HEAD || true
@@ -166,7 +164,6 @@ steps:
           > /dev/null
 
         echo "$HASH" > "$HASH_FILE"
-        git pull --rebase origin main
         git add "$HASH_FILE"
         git commit -m "CI: update readme_hash for $service [skip ci]" || true
         git push origin HEAD || true
