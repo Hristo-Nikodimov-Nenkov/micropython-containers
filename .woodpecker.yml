@@ -96,6 +96,7 @@ steps:
 
           while [ "$ATTEMPT" -le "$MAX_ATTEMPTS" ]; do
             echo "[INFO] Build attempt $ATTEMPT/$MAX_ATTEMPTS for $service $VERSION"
+            echo " Starting - build.sh with $FLAGS"
 
             if sh "$SERVICE_PATH/build.sh" "$SERVICE_PATH" $FLAGS; then
               BUILD_OK=true
