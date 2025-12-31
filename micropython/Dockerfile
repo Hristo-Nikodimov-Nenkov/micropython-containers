@@ -21,7 +21,7 @@ RUN git clone -b ${MICROPYTHON_VERSION} --recursive https://github.com/micropyth
 
 WORKDIR /opt/micropython
 RUN git submodule update --init --recursive
-RUN make -C mpy-cross -j"$(nproc)"
+RUN make -C mpy-cross -j2
 
 COPY build_firmware.sh /usr/local/bin/build_firmware.sh
 RUN chmod +x /usr/local/bin/build_firmware.sh

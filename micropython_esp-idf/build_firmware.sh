@@ -99,9 +99,9 @@ make BOARD="$BOARD" submodules
 
 if [[ -f "$MANIFEST" ]]; then
     echo "Using frozen manifest: $MANIFEST"
-    make BOARD="$BOARD" FROZEN_MANIFEST="$MANIFEST" -j"$(nproc)"
+    make BOARD="$BOARD" FROZEN_MANIFEST="$MANIFEST" -j2
 else
-    make BOARD="$BOARD" -j"$(nproc)"
+    make BOARD="$BOARD" -j2
 fi
 
 OUTPUT_DIR="$PROJECT_DIR/dist"
