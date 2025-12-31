@@ -2,17 +2,17 @@
   {
     "tags": "v1.21.0,v1.21",
     "micropython": "v1.21.0",
-    "built": false
+    "built": true
   },
   {
     "tags": "v1.22.0",
     "micropython": "v1.22.0",
-    "built": false
+    "built": true
   },
   {
     "tags": "v1.22.1",
     "micropython": "v1.22.1",
-    "built": false
+    "built": true
   },
   {
     "tags": "v1.22.2,v1.22",
