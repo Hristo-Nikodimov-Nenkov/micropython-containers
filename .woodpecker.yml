@@ -62,7 +62,7 @@ steps:
         fi
 
         echo "$CURRENT_HASH" > "$HASH_FILE"
-        git pull
+        git pull --rebase origin main
         git add "$HASH_FILE"
         git commit -m "CI: update service_hash for $service [skip ci]" || true
         git push origin HEAD || true
@@ -93,7 +93,7 @@ steps:
               'map(if .micropython == $v then .built = true else . end)' \
               "$SERVICE_PATH/versions.json" > "$tmp" && mv "$tmp" "$SERVICE_PATH/versions.json"
 
-            git pull
+            git pull --rebase origin main
             git add "$SERVICE_PATH/versions.json"
             git commit -m "CI: mark $service $VERSION as built [skip ci]" || true
             git push origin HEAD || true
@@ -136,7 +136,7 @@ steps:
           > /dev/null
 
         echo "$HASH" > "$HASH_FILE"
-        git pull
+        git pull --rebase origin main
         git add "$HASH_FILE"
         git commit -m "CI: update readme_hash for $service [skip ci]" || true
         git push origin HEAD || true
