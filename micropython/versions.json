@@ -32,7 +32,7 @@
   {
     "tags": "v1.24.1,v1.24",
     "micropython": "v1.24.1",
-    "built": false
+    "built": true
   },
   {
     "tags": "v1.25.0,v1.25",
