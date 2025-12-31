@@ -40,6 +40,7 @@ steps:
       - /var/run/docker.sock:/var/run/docker.sock
     commands: |
       apk add --no-cache jq git coreutils
+
       cd "$CI_WORKSPACE"
 
       git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/$CI_REPO_OWNER/$CI_REPO_NAME.git
