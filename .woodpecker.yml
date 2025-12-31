@@ -93,20 +93,17 @@ steps:
           FLAGS="$FLAGS --built false"
 
           if sh "$SERVICE_PATH/build.sh" "$SERVICE_PATH" $FLAGS; then
-            echo "[INFO] Build finished for $service $VERSION – cooling down"
             sleep 10
-          
             tmp=$(mktemp)
             jq --arg v "$VERSION" \
               'map(if .micropython == $v then .built = true else . end)' \
               "$SERVICE_PATH/versions.json" > "$tmp" && mv "$tmp" "$SERVICE_PATH/versions.json"
-          
+
             git pull --rebase origin main
             git add "$SERVICE_PATH/versions.json"
             git commit -m "CI: mark $service $VERSION as built [skip ci]" || true
             git push origin HEAD || true
           fi
-
         done < /tmp/versions.list
       done < services.order
 
