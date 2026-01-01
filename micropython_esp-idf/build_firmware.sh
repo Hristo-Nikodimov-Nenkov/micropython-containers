@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
@@ -6,56 +6,56 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 : "${BOARD:?ERROR: BOARD must be set (example: RPI_PICO, RPI_PICO2_W)}"
 
-PROJECT_DIR="/project"
+PROJECT_DIR="/var/project"
 MICROPYTHON_DIR="/opt/micropython"
 IDF_PATH="/opt/esp-idf"
 EXPORT_SH="$IDF_PATH/export.sh"
 PORT_DIR="${MICROPYTHON_DIR}/ports/esp32"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 
-
-echo "========================================================================================="
-echo " Building MicroPython firmware for:"
-echo " BOARD = ${BOARD}"
-echo "========================================================================================="
+echo "================================================================================"
+echo " Building MicroPython firmware for"
+echo "--------------------------------------------------------------------------------"
+echo " PORT: esp32"
+echo " BOARD: ${BOARD}"
+echo "================================================================================"
 
 if [[ ! -d "$BOARD_DIR" ]]; then
     echo "ERROR: Board not found: $BOARD_DIR"
-    exit 2
+    echo "--------------------------------------------------------------------------------"
+    exit 3
 fi
 
 # -----------------------------------------------------------------------
 # Source ESP-IDF environment
 # -----------------------------------------------------------------------
 echo "Sourcing ESP-IDF environment..."
+echo "--------------------------------------------------------------------------------"
 source "$EXPORT_SH"
-
+echo "--------------------------------------------------------------------------------"
 echo "ESP-IDF version: $(idf.py --version)"
+echo "--------------------------------------------------------------------------------"
 
 MPY_CROSS="${MICROPYTHON_DIR}/mpy-cross"
 if [[ ! -x "$MPY_CROSS" ]]; then
     echo "ERROR: mpy-cross not found at ${MPY_CROSS}"
+    echo "--------------------------------------------------------------------------------"
     exit 4
 fi
 export MPY_CROSS
 
-# ---------------------------------------------------------------------------
-# Handle manifest
-# ---------------------------------------------------------------------------
 MANIFEST="$PROJECT_DIR/manifest.py"
 MODULES_DIR="$PROJECT_DIR/modules"
 
 if [[ -f "$MANIFEST" ]]; then
-    echo "Using existing manifest.py"
+    echo " Using existing manifest.py"
+    echo "--------------------------------------------------------------------------------"
 else
-    echo "No manifest.py found — checking if generation is needed..."
-
-    echo " PROJECT_DIR:"
-    ls -al $PROJECT_DIR
-    echo ""
+    echo " No manifest.py found — checking if generation is needed..."
+    echo "--------------------------------------------------------------------------------"
 
     modules_nonempty=false
-    if [ -d "$MODULES_DIR" ] && find "$MODULES_DIR" -mindepth 1 | read; then
+    if [[ -d "$MODULES_DIR" && -n "$(ls -A "$MODULES_DIR")" ]]; then
         modules_nonempty=true
     fi
 
@@ -68,7 +68,8 @@ else
     fi
 
     if [[ "$generate_manifest" == true ]]; then
-        echo "Generating manifest.py..."
+        echo " Generating manifest.py..."
+        echo "--------------------------------------------------------------------------------"
         {
             echo 'include("$(PORT_DIR)/boards/manifest.py")'
             echo
@@ -80,14 +81,11 @@ else
             fi
         } > "$MANIFEST"
     else
-        echo "No modules to freeze and FREEZE_MAIN not set — continuing without manifest."
+        echo " No modules to freeze and FREEZE_MAIN not set — continuing without manifest."
+        echo "--------------------------------------------------------------------------------"
     fi
 fi
-echo "-----------------------------------------------------------------------------------------"
 
-# ---------------------------------------------------------------------------
-# Build firmware
-# ---------------------------------------------------------------------------
 echo "==========================================="
 echo " Building firmware..."
 echo "==========================================="
@@ -110,17 +108,20 @@ mkdir -p "$OUTPUT_DIR"
 BUILD_DIR="$PORT_DIR/build-$BOARD"
 
 if [[ -d "$BUILD_DIR" ]]; then
-    # Copy all .bin files from BUILD_DIR with max depth 2
     find "$BUILD_DIR" -maxdepth 2 -type f -name "*.bin" \
         -exec cp {} "$OUTPUT_DIR/" \; 2>/dev/null || true
 else
     echo "ERROR: Build directory not found: $BUILD_DIR"
+    echo "-----------------------------------------------------------------------------------------"
     exit 5
 fi
 
+echo "========================================================================================="
 echo " Project directory content:"
+echo "-----------------------------------------------------------------------------------------"
 ls -al $PROJECT_DIR
-echo ""
+echo "========================================================================================="
 echo " Output directory content:"
+echo "-----------------------------------------------------------------------------------------"
 ls -al $OUTPUT_DIR
 echo "========================================================================================="

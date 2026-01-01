@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
@@ -12,17 +12,22 @@ MICROPY_DIR="/opt/micropython"
 PORT_DIR="${MICROPY_DIR}/ports/${PORT}"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 
-echo "========================================================================================="
-echo " Building MicroPython firmware for PORT ${PORT} BOARD: ${BOARD}"
-echo "========================================================================================="
+echo "================================================================================"
+echo " Building MicroPython firmware for"
+echo "--------------------------------------------------------------------------------"
+echo " PORT: ${PORT}"
+echo " BOARD: ${BOARD}"
+echo "================================================================================"
 
 if [[ ! -d "$PORT_DIR" ]]; then
     echo "ERROR: MicroPython port not found: $PORT_DIR"
+    echo "--------------------------------------------------------------------------------"
     exit 2
 fi
 
 if [[ ! -d "$BOARD_DIR" ]]; then
     echo "ERROR: Board not found: $BOARD_DIR"
+    echo "--------------------------------------------------------------------------------"
     exit 3
 fi
 
@@ -31,16 +36,18 @@ if [[ ! -x "$MPY_CROSS" ]]; then
     echo "ERROR: mpy-cross not found at ${MPY_CROSS}"
     exit 4
 fi
+
 export MPY_CROSS
 
 MANIFEST="$PROJECT_DIR/manifest.py"
 MODULES_DIR="$PROJECT_DIR/modules"
-echo "-----------------------------------------------------------------------------------------"
 
 if [[ -f "$MANIFEST" ]]; then
-    echo "Using existing manifest.py"
+    echo " Using existing manifest.py"
+    echo "--------------------------------------------------------------------------------"
 else
-    echo "No manifest.py found — checking if generation is needed..."
+    echo " No manifest.py found — checking if generation is needed..."
+    echo "--------------------------------------------------------------------------------"
 
     modules_nonempty=false
     if [[ -d "$MODULES_DIR" && -n "$(ls -A "$MODULES_DIR")" ]]; then
@@ -56,7 +63,8 @@ else
     fi
 
     if [[ "$generate_manifest" == true ]]; then
-        echo "Generating manifest.py..."
+        echo " Generating manifest.py..."
+        echo "--------------------------------------------------------------------------------"
         {
             echo 'include("$(PORT_DIR)/boards/manifest.py")'
             echo
@@ -68,11 +76,10 @@ else
             fi
         } > "$MANIFEST"
     else
-        echo "No modules to freeze and FREEZE_MAIN not set — continuing without manifest."
+        echo " No modules to freeze and FREEZE_MAIN not set — continuing without manifest."
+        echo "--------------------------------------------------------------------------------"
     fi
 fi
-
-echo "-----------------------------------------------------------------------------------------"
 
 echo "========================================================================================="
 echo " Building firmware..."
@@ -86,6 +93,7 @@ echo "--------------------------------------------------------------------------
 
 if [[ -f "$MANIFEST" ]]; then
     echo "Using frozen manifest: $MANIFEST"
+    echo "-----------------------------------------------------------------------------------------"
     make BOARD="$BOARD" FROZEN_MANIFEST="$MANIFEST" -j2
 else
     make BOARD="$BOARD" -j2
@@ -94,6 +102,7 @@ fi
 OUTPUT_DIR="$PROJECT_DIR/dist"
 mkdir -p "$OUTPUT_DIR"
 echo " OUTPUT_DIR: $OUTPUT_DIR"
+echo "-----------------------------------------------------------------------------------------"
 
 BUILD_DIR="$PORT_DIR/build-$BOARD"
 
@@ -101,11 +110,16 @@ if [[ -d "$BUILD_DIR" ]]; then
     cp "$BUILD_DIR"/*.bin "$BUILD_DIR"/*.hex "$BUILD_DIR"/*.uf2 "$OUTPUT_DIR/" 2>/dev/null || true
 else
     echo "ERROR: Build directory not found: $BUILD_DIR"
+    echo "-----------------------------------------------------------------------------------------"
     exit 5
 fi
-echo "-----------------------------------------------------------------------------------------"
+
+echo "========================================================================================="
 echo " Project directory content:"
-ls $PROJECT_DIR
+echo "-----------------------------------------------------------------------------------------"
+ls -al $PROJECT_DIR
+echo "========================================================================================="
 echo " Output directory content:"
-ls $OUTPUT_DIR
+echo "-----------------------------------------------------------------------------------------"
+ls -al $OUTPUT_DIR
 echo "========================================================================================="
