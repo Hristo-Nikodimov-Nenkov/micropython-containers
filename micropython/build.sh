@@ -66,7 +66,11 @@ IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$FIRST_TAG"
 # -----------------------------
 # Build ONCE
 # -----------------------------
-echo "Building Docker image: $IMAGE"
+echo "============================================================================"
+echo "📦 Building Docker image: $IMAGE"
+echo "============================================================================"
+echo " MicroPython: $MICROPYTHON_VERSION"
+echo "----------------------------------------------------------------------------"
 docker build --rm \
   --build-arg MICROPYTHON_VERSION="$MICROPYTHON_VERSION" \
   -t "$IMAGE" \
