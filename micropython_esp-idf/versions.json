@@ -3,13 +3,13 @@
     "micropython": "v1.24.1",
     "esp_idf": "v5.1.4",
     "tags": "v1.24.1_v5.1.4,v1.24_v5.1.4,v1.24.1_v5.1,v1.24_v5.1",
-    "built": false
+    "built": true
   },
   {
     "micropython": "v1.24.1",
     "esp_idf": "v5.2.1",
     "tags": "v1.24.1_v5.2.1,v1.24_v5.2.1,v1.24.1_v5.2,v1.24_v5.2",
-    "built": false
+    "built": true
   },
   {
     "micropython": "v1.25.0",
