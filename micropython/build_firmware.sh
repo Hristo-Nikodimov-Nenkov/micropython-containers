@@ -11,13 +11,41 @@ if [[ -n "${PROJECT_DIR:-}" ]]; then
     PROJECT_DIR="$(realpath "$PROJECT_DIR")"
 elif [[ -n "${CI_WORKSPACE:-}" ]]; then
     PROJECT_DIR="$(realpath "$CI_WORKSPACE")"
+elif [[ -n "${GITHUB_WORKSPACE:-}" ]]; then
+    PROJECT_DIR="$(realpath "$GITHUB_WORKSPACE")"
+elif [[ -n "${CI_PROJECT_DIR:-}" ]]; then
+    PROJECT_DIR="$(realpath "$CI_PROJECT_DIR")"
+elif [[ -n "${CIRCLE_WORKING_DIRECTORY:-}" ]]; then
+    PROJECT_DIR="$(realpath "$CIRCLE_WORKING_DIRECTORY")"
+elif [[ -n "${BUILD_SOURCESDIRECTORY:-}" ]]; then
+    PROJECT_DIR="$(realpath "$BUILD_SOURCESDIRECTORY")"
+elif [[ -n "${BITBUCKET_CLONE_DIR:-}" ]]; then
+    PROJECT_DIR="$(realpath "$BITBUCKET_CLONE_DIR")"
+elif [[ -n "${WORKSPACE:-}" ]]; then
+    PROJECT_DIR="$(realpath "$WORKSPACE")"
 else
-    PROJECT_DIR="/var/project"
+    echo "ERROR: PROJECT_DIR not set and no known CI workspace variable found"
+    exit 1
 fi
 
 MICROPY_DIR="/opt/micropython"
 PORT_DIR="${MICROPY_DIR}/ports/${PORT}"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
+
+MANIFEST="$PROJECT_DIR/manifest.py"
+MODULES_DIR="$PROJECT_DIR/modules"
+
+PROJECT_SCRIPT="$PROJECT_DIR/build_firmware.sh"
+IMAGE_SCRIPT="/usr/local/lib/build_firmware.sh"
+
+if [[ -x "$PROJECT_SCRIPT" ]]; then
+    echo "Using project-provided build_firmware.sh"
+    chmod +x "$PROJECT_DIR/build_firmware.sh"
+    exec "$PROJECT_SCRIPT"
+else
+    echo "Using image-provided build_firmware.sh"
+    exec "$IMAGE_SCRIPT"
+fi
 
 echo "================================================================================"
 echo " Building MicroPython firmware for"
@@ -45,11 +73,6 @@ if [[ ! -x "$MPY_CROSS" ]]; then
 fi
 
 export MPY_CROSS
-
-MANIFEST="$PROJECT_DIR/manifest.py"
-MODULES_DIR="$PROJECT_DIR/modules"
-
-ls -al "$PROJECT_DIR"
 
 if [[ -f "$MANIFEST" ]]; then
     echo " Using existing manifest.py"
