@@ -1,46 +1,63 @@
-# MicroPython Firmware Builder
-The tag is the release version of MicroPython that the container will build.
+# MicroPython Build Container
+This Docker container allows you to **build MicroPython firmware** for **various ports**. \
+If you are using **ESP32** based board you should use [micropython_esp-idf](https://hub.docker.com/r/rav3nh01m/micropython_esp-idf). 
 
-## Setup
-To build custom firmware your project should have this layout:
+## Table of Contents
 
-- **/modules** – Modules that have to be frozen in the firmware.
-There is **no need** to create **manifest.py**; it is generated before each build.
+- [Supported MicroPython Versions](#supported-micropython-versions)  
+- [Environment Variables](#environment-variables)  
+- [Project layout](#project-layout)
+- [Example Usage](#example-usage)    
+- [Notes](#notes)  
+
+---
+
+## Supported MicroPython Versions
+You can check which versions are available [here](https://hub.docker.com/r/rav3nh01m/micropython/tags). \
+The **tag** is the **version** of MicroPyhon the container will build. \
+**All packages are pre-installed.**
+
+## Environment variables
+The container uses environment variables as input for:
+- **PORT** - The MicroPython port. It should be **lower-case**.
+- **BOARD** - The board for which the firmware is intended. \
+It should be **upper-case** and **exactly the same** as in **micropython/ports/PORT/boards** directory.
+- **FREEZE_MAIN** - It should be **string** with value **"true"** or **"false"**. \
+It **allows** you to **freeze main.py** inside the firmware, very **handy** if you want to **flash and forget**.
+
+## Project layout.
+Your project should have this layout:
+- **/modules** – Modules that have to be frozen in the firmware. \
+There is **no need** to create **manifest.py**; it is **generated** before each build **when the directory exists**.
 
 - **/lib** – Modules that are **not frozen** and will be **uploaded** to the microcontroller.
 
 - **/main.py** – The entry point of the project.
-To **freeze it in the firmware**, set the environment variable **FREEZE_MAIN=true**.
+To **freeze it in the firmware**, use **FREEZE_MAIN="true"**.
 
 - **/dist** – The output directory.
-After a successful build the **firmware (.bin, .hex, or .uf2)** will appear here.
+After a **successful** build the **firmware (.bin, .hex, or .uf2)** will appear here.
 
-- **/build_firmware.sh** – If this file exists in your project, it will **override** the integrated script inside the container.
+- **/build_firmware.sh** – If this **file exists** in your project, it will **override** the **integrated script** inside the container.
 
-- **/manifest.py** – If included, this file will be used instead of an auto-generated manifest.
+- **/manifest.py** – If this **file exists** in your project, it will be **used** as **manifest** when building the firmware. 
 
-### Environment Variables
----
-The container uses environment variables as input:
+### Project root not in the repo root
+If your **code** is **not** in the **root directory** of the repo:
+- **mount** the directory **containing** the **main.py** file and/or **modules** directories.
+For example, if they are in **/src** use **-v ./src:/var/project**
 
-- **PORT** – The MicroPython port.
+## Example usage
+You can use this container both for [manual](#manual-build) builds or inside a [CI/CD](#cicd-build) pipeline.
 
-- **BOARD** – The board the firmware is built for.
-Must **match exactly** a board name in **micropython/ports/$PORT/boards**.
-
-- **FREEZE_MAIN** – Set to **true** to freeze main.py inside the firmware.
-
-### Workflow
----
-#### Manual build
+### Manual build
 ---
 All examples use latest.
 
 To **use a specific** version, replace **latest** with something like:
 **v1.xx.x or v1.xx**
 
-Available versions can be found here:
-https://hub.docker.com/r/rav3nh01m/micropython/tags
+Available versions can be found [here](https://hub.docker.com/r/rav3nh01m/micropython/tags).
 
 Pull the image:
 ```bash
@@ -51,7 +68,7 @@ After that, run:
 ```bash
 docker run --rm \
 -e PORT=rp2 \
--e BOARD=RPI_PICO_W \
+-e BOARD=RPI_PICO2 \
 -v ./:/var/project \
 rav3nh01m/micropython:latest
 ```
@@ -66,16 +83,15 @@ docker run --rm \
 rav3nh01m/micropython:latest
 ```
 
-You can use **any version** of MicroPython **available in the set** by changing **latest** to the **version you want**.
+You can use **any version** of MicroPython **available** in the **set** by changing **latest** to the **version** you want.
 
-After the **build completes**, the firmware will be in **/dist** relative to the directory you mounted with -v:”
+After the **build completes**, the firmware will be in **/dist** relative to the **directory you mounted** with **-v**:”
 
 **-v <host_path>:<container_path>**
 
-The container path **must be**: **/project** unless you use custom build_firmware.sh, in which case you can use any path you want.
+The container path **must be /var/project**, unless you use **custom build_firmware.sh**, in which case you can **use any path you want**.
 
-#### CI/CD Build
----
+### CI/CD build
 You can use GitHub Actions or any other CI/CD system to set up automatic builds.
 
 For GitHub Actions, you can use either **Environment variables** or **Actions variables**, both found under:
@@ -87,11 +103,5 @@ Use them like this:
 
 Where **PORT** is the **NAME** of the variable.
 
-If your **code is not in the root directory** of the repo, **mount** the directory **containing the main.py** file and the **lib** and/or **modules** directories.
-For example, if they are in **/src**:
-
-**-v ./src:/project**
-
----
 ---
 If you find this useful, please consider buying me a beer → https://buymeacoffee.com/reaper.maxpayne
