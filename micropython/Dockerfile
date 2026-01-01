@@ -5,7 +5,7 @@ RUN apt-get update
 RUN apt-get install -y --no-install-recommends \
     git unzip wget curl rsync ca-certificates pkg-config \
     build-essential make cmake ninja-build \
-    python3 python3-pip python3-setuptools python3-venv \
+    python3 python3-pip python3-setuptools python3-venv python3-dev \
     flex bison libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev \
     gdb-multiarch libc6-dev libusb-1.0-0-dev \
     gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi \
