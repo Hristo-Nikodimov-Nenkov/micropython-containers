@@ -7,7 +7,14 @@ set -euo pipefail
 : "${PORT:?ERROR: PORT must be set (example: rp2, stm32, nrf)}"
 : "${BOARD:?ERROR: BOARD must be set (example: RPI_PICO, RPI_PICO2_W)}"
 
-PROJECT_DIR="/var/project"
+if [[ -n "${PROJECT_DIR:-}" ]]; then
+    PROJECT_DIR="$(realpath "$PROJECT_DIR")"
+elif [[ -n "${CI_WORKSPACE:-}" ]]; then
+    PROJECT_DIR="$(realpath "$CI_WORKSPACE")"
+else
+    PROJECT_DIR="/var/project"
+fi
+
 MICROPY_DIR="/opt/micropython"
 PORT_DIR="${MICROPY_DIR}/ports/${PORT}"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"

@@ -6,7 +6,14 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 : "${BOARD:?ERROR: BOARD must be set (example: RPI_PICO, RPI_PICO2_W)}"
 
-PROJECT_DIR="/var/project"
+if [[ -n "${PROJECT_DIR:-}" ]]; then
+    PROJECT_DIR="$(realpath "$PROJECT_DIR")"
+elif [[ -n "${CI_WORKSPACE:-}" ]]; then
+    PROJECT_DIR="$(realpath "$CI_WORKSPACE")"
+else
+    PROJECT_DIR="/var/project"
+fi
+
 MICROPYTHON_DIR="/opt/micropython"
 IDF_PATH="/opt/esp-idf"
 EXPORT_SH="$IDF_PATH/export.sh"
