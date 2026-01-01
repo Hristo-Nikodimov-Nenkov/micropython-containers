@@ -35,7 +35,6 @@ steps:
   - name: Build and push containers
     image: docker:latest
     environment:
-      DOCKER_CLIENT_TIMEOUT: 10800
       DOCKERHUB_USERNAME:
         from_secret: DOCKERHUB_USERNAME
       DOCKERHUB_TOKEN:
