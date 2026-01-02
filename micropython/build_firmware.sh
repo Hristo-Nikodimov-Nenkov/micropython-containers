@@ -36,14 +36,14 @@ MANIFEST="$PROJECT_DIR/manifest.py"
 MODULES_DIR="$PROJECT_DIR/modules"
 
 PROJECT_SCRIPT="$PROJECT_DIR/build_firmware.sh"
-IMAGE_SCRIPT="/usr/local/lib/build_firmware.sh"
+IMAGE_SCRIPT="/usr/local/bin/build_firmware.sh"
 
-if [[ -x "$PROJECT_SCRIPT" ]]; then
-    echo "Using project-provided build_firmware.sh"
+if [[ -f "$PROJECT_SCRIPT" ]]; then
+    echo "Using build_firmware.sh from project."
     chmod +x "$PROJECT_DIR/build_firmware.sh"
     exec "$PROJECT_SCRIPT"
 else
-    echo "Using image-provided build_firmware.sh"
+    echo "Using baked-in build_firmware.sh"
     exec "$IMAGE_SCRIPT"
 fi
 

@@ -31,17 +31,17 @@ MICROPYTHON_DIR="/opt/micropython"
 IDF_PATH="/opt/esp-idf"
 EXPORT_SH="$IDF_PATH/export.sh"
 PORT_DIR="${MICROPYTHON_DIR}/ports/esp32"
-
-PROJECT_SCRIPT="$PROJECT_DIR/build_firmware.sh"
-IMAGE_SCRIPT="/usr/local/lib/build_firmware.sh"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 
-if [[ -x "$PROJECT_SCRIPT" ]]; then
-    echo "Using project-provided build_firmware.sh"
+PROJECT_SCRIPT="$PROJECT_DIR/build_firmware.sh"
+IMAGE_SCRIPT="/usr/local/bin/build_firmware.sh"
+
+if [[ -f "$PROJECT_SCRIPT" ]]; then
+    echo "Using build_firmware.sh from project."
     chmod +x "$PROJECT_DIR/build_firmware.sh"
     exec "$PROJECT_SCRIPT"
 else
-    echo "Using image-provided build_firmware.sh"
+    echo "Using baked-in build_firmware.sh"
     exec "$IMAGE_SCRIPT"
 fi
 
