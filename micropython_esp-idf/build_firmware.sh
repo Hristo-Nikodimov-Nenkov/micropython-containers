@@ -37,12 +37,15 @@ PROJECT_SCRIPT="$PROJECT_DIR/build_firmware.sh"
 IMAGE_SCRIPT="/usr/local/bin/build_firmware.sh"
 
 if [[ -f "$PROJECT_SCRIPT" ]]; then
-    echo "Using build_firmware.sh from project."
+    echo "================================================================================"
+    echo " Using build_firmware.sh from project."
+    echo "================================================================================"
     chmod +x "$PROJECT_DIR/build_firmware.sh"
     exec "$PROJECT_SCRIPT"
 else
-    echo "Using baked-in build_firmware.sh"
-    exec "$IMAGE_SCRIPT"
+    echo "================================================================================"
+    echo " Using baked-in build_firmware.sh"
+    echo "================================================================================"
 fi
 
 echo "================================================================================"
