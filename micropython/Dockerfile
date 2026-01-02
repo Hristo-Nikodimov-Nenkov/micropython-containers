@@ -26,5 +26,4 @@ RUN make -C mpy-cross -j2
 COPY build_firmware.sh /usr/local/bin/build_firmware.sh
 RUN chmod +x /usr/local/bin/build_firmware.sh
 
-WORKDIR /var/project
 ENTRYPOINT ["/usr/local/bin/build_firmware.sh"]

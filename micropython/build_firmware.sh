@@ -2,11 +2,8 @@
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
-# Required environment variables
+# Set PROJECT_DIR variable
 # ---------------------------------------------------------------------------
-: "${PORT:?ERROR: PORT must be set (example: rp2, stm32, nrf)}"
-: "${BOARD:?ERROR: BOARD must be set (example: RPI_PICO, RPI_PICO2_W)}"
-
 if [[ -n "${PROJECT_DIR:-}" ]]; then
     PROJECT_DIR="$(realpath "$PROJECT_DIR")"
 elif [[ -n "${CI_WORKSPACE:-}" ]]; then
@@ -28,13 +25,9 @@ else
     exit 1
 fi
 
-MICROPY_DIR="/opt/micropython"
-PORT_DIR="${MICROPY_DIR}/ports/${PORT}"
-BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
-
-MANIFEST="$PROJECT_DIR/manifest.py"
-MODULES_DIR="$PROJECT_DIR/modules"
-
+# ---------------------------------------------------------------------------
+# Check for custom build_firmware.sh
+# ---------------------------------------------------------------------------
 PROJECT_SCRIPT="$PROJECT_DIR/build_firmware.sh"
 IMAGE_SCRIPT="/usr/local/bin/build_firmware.sh"
 
@@ -49,6 +42,19 @@ else
     echo " Using baked-in build_firmware.sh"
     echo "================================================================================"
 fi
+
+# ---------------------------------------------------------------------------
+# Required environment variables
+# ---------------------------------------------------------------------------
+: "${PORT:?ERROR: PORT must be set (example: rp2, stm32, nrf)}"
+: "${BOARD:?ERROR: BOARD must be set (example: RPI_PICO, RPI_PICO2_W)}"
+
+MICROPY_DIR="/opt/micropython"
+PORT_DIR="${MICROPY_DIR}/ports/${PORT}"
+BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
+
+MANIFEST="$PROJECT_DIR/manifest.py"
+MODULES_DIR="$PROJECT_DIR/modules"
 
 echo "================================================================================"
 echo " Building MicroPython firmware for"

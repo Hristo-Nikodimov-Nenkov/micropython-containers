@@ -19,7 +19,6 @@ RUN chmod +x install.sh export.sh
 RUN ./install.sh all
 RUN echo ". /opt/esp-idf/export.sh" >> /etc/bash.bashrc
 
-WORKDIR /project
 COPY build_firmware.sh /usr/local/bin/build_firmware.sh
 RUN chmod +x /usr/local/bin/build_firmware.sh
 
