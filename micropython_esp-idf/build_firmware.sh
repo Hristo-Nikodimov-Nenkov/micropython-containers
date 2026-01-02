@@ -25,7 +25,7 @@ elif [[ -n "${WORKSPACE:-}" ]]; then
 else
     echo "ERROR: PROJECT_DIR not set and no known CI workspace variable found"
     exit 1
-fis
+fi
 
 MICROPYTHON_DIR="/opt/micropython"
 IDF_PATH="/opt/esp-idf"
