@@ -22,7 +22,9 @@ The container uses environment variables as input for:
 - **BOARD** - The board for which the firmware is intended. \
 It should be **upper-case** and **exactly the same** as in **micropython/ports/PORT/boards** directory.
 - **FREEZE_MAIN** - It should be **string** with value **"true"** or **"false"**. \
-It **allows** you to **freeze main.py** inside the firmware, very **handy** if you want to **flash and forget**.
+It **allows** you to **freeze main.py** inside the firmware, if the file exist, very **handy** if you want to **flash and forget**.
+- **FREEZE_BOOT** - It should be **string** with value **"true"** or **"false"**. \
+It **allows** you to **freeze boot.py** inside the firmware, if the file exist, very **handy** when you want to **set safe state** of the board pins.
 - **PROJECT_DIR** - It's the **path** to the **project directory**. \
 If you are **using a CI/CD** then (in most cases) it will **detect** it and use the **CI workspace**, but **only if you use the baked-in build script**. \
 If you use **custom build_firmware.sh** you have to **handle this**.
@@ -81,6 +83,18 @@ docker run --rm \
 -e PORT=rp2 \
 -e BOARD=RPI_PICO_W \
 -e FREEZE_MAIN=true \
+-v ./:/var/project \
+rav3nh01m/micropython:latest
+```
+---
+Or if you want to freeze boot.py:
+
+```bash
+docker run --rm \
+-e PROJECT_DIR="/var/project" \
+-e PORT=rp2 \
+-e BOARD=RPI_PICO_W \
+-e FREEZE_BOOT=true \
 -v ./:/var/project \
 rav3nh01m/micropython:latest
 ```

@@ -25,6 +25,8 @@ The container uses environment variables as input for:
 It should be **upper-case** and **exactly the same** as in **micropython/ports/esp32/boards** directory.
 - **FREEZE_MAIN** - It should be **string** with value **"true"** or **"false"**. \
 It **allows** you to **freeze main.py** inside the firmware, very **handy** if you want to **flash and forget**.
+- **FREEZE_BOOT** - It should be **string** with value **"true"** or **"false"**. \
+It **allows** you to **freeze boot.py** inside the firmware, if the file exist, very **handy** when you want to **set safe state** of the board pins.
 - **PROJECT_DIR** - It's the **path** to the **project directory**. \
 If you are **using a CI/CD** then (in most cases) it will **detect** it and use the **CI workspace**, but **only if you use the baked-in build script**. \
 If you use **custom build_firmware.sh** you have to **handle this**.
@@ -86,6 +88,18 @@ rav3nh01m/micropython_esp-idf:latest
 ```
 ---
 
+Or if you want to freeze boot.py:
+
+```bash
+docker run --rm \
+-e PROJECT_DIR="/var/project" \
+-e BOARD="ESP32_GENERIC" \
+-e FREEZE_BOOT="true" \
+-v ./:/var/project \
+rav3nh01m/micropython_esp-idf:latest
+```
+---
+
 You can use **any version** of MicroPython **available** in the **set** by changing **latest** to the **version** you want. \
 It should be like: 
 - v1.24.1_v5.2.1
@@ -110,6 +124,9 @@ You can use GitHub Actions, Woodpecker, GitLab CI or any other CI/CD system to s
 
 **Before pushing this workflow to GitHub you must create MICROPYTHON_VERSION and BOARD actions variables (not Environment).** \
 **Or you can create BOARD as environment variable and remove the env section from the workflow, but MICROPYTHON_VERSION must be actions variable!**
+
+**GitHub Actions fail with "No space left..." error. The container is quite large and free GitHub Actions runners have storage limit.** \
+I'm using GitHub Actions workflow as example of CI/CD pipeline.
 
 ```yaml
 name: Build firmware (upload artifact)
