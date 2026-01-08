@@ -109,18 +109,6 @@ echo "$TAGS" | tr ',' '\n' | while read tag; do
 done
 
 # -----------------------------
-# Cleanup local images
-# -----------------------------
-echo "$TAGS" | tr ',' '\n' | while read tag; do
-  tag=$(echo "$tag" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  docker rmi -f "$DOCKERHUB_USERNAME/$DIR_NAME:$tag" || true
-
-  BASE_IMAGE="rav3nh01m/micropython:${MICROPYTHON_VERSION}"
-  echo "Removing base image: $BASE_IMAGE"
-  docker rmi -f "$BASE_IMAGE" || true
-done
-
-# -----------------------------
 # Update versions.json
 # -----------------------------
 VERSION_JSON="$DIRECTORY/versions.json"

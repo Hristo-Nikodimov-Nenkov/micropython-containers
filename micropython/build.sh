@@ -92,14 +92,6 @@ echo "$TAGS" | tr ',' '\n' | while read tag; do
 done
 
 # -----------------------------
-# Cleanup local images
-# -----------------------------
-echo "$TAGS" | tr ',' '\n' | while read tag; do
-  tag=$(trim "$tag")
-  docker rmi -f "$DOCKERHUB_USERNAME/$DIR_NAME:$tag" >/dev/null 2>&1 || true
-done
-
-# -----------------------------
 # Update versions.json
 # -----------------------------
 VERSION_JSON="$DIRECTORY/versions.json"
