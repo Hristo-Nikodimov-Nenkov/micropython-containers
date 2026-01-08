@@ -95,11 +95,21 @@ else
         modules_nonempty=true
     fi
 
-    freeze_main="${FREEZE_MAIN:-false}"
-    freeze_main="${freeze_main,,}"
     generate_manifest=false
 
-    if [[ "$modules_nonempty" == true || "$freeze_main" == "true" ]]; then
+    if [[ "$modules_nonempty" == true]]; then
+        generate_manifest=true
+    fi
+
+    freeze_main="${FREEZE_MAIN:-false}"
+    freeze_main="${freeze_main,,}"
+    if [[ -f "main.py" ]] && [[ "$freeze_main" == "true" ]]; then
+        generate_manifest=true
+    fi
+
+    freeze_boot="${FREEZE_BOOT:-false}"
+    freeze_boot="${freeze_boot,,}"
+    if [[ -f "boot.py"]] && [[ "$freeze_boot" == "true" ]]; then
         generate_manifest=true
     fi
 
@@ -114,6 +124,9 @@ else
             fi
             if [[ "$freeze_main" == "true" ]]; then
                 echo 'freeze(".", script="main.py", opt=3)'
+            fi
+            if [[ "$freeze_boot" == "true" ]]; then
+                echo 'freeze(".", script="boot.py", opt=3)'
             fi
         } > "$MANIFEST"
     else
