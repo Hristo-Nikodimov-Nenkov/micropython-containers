@@ -143,7 +143,7 @@ cd "$PORT_DIR"
 
 SUBMODULE_ARGS=("BOARD=$BOARD")
 
-if [[ -n "$BOARD_VARIANT" ]]; then
+if [[ -n "${BOARD_VARIANT:-}" ]]; then
     SUBMODULE_ARGS+=("BOARD_VARIANT=$BOARD_VARIANT")
 fi
 
