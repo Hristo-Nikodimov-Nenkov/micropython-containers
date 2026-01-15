@@ -25,7 +25,6 @@ steps:
       git remote set-url origin https://x-access-token:$GITHUB_TOKEN@github.com/$CI_REPO_OWNER/$CI_REPO_NAME.git
       git branch --set-upstream-to=origin/main main || true
 
-
   - name: Check services
     image: alpine:latest
     commands: |
