@@ -126,8 +126,6 @@ steps:
             echo "[ERROR] Build failed after $MAX_ATTEMPTS attempts for $service $VERSION"
           fi
 
-
-
         done < /tmp/versions.list
       done < services.order
 
