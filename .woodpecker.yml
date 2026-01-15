@@ -168,11 +168,3 @@ steps:
         git commit -m "CI: update readme_hash for $service [skip ci]" || true
         git push origin HEAD || true
       done < services.order
-
-  - name: Docker cleanup
-    image: docker:latest
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    commands: |
-      docker image prune -f
-      docker builder prune -f
