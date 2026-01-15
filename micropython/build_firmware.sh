@@ -130,7 +130,8 @@ else
             fi
         } > "$MANIFEST"
     else
-        echo " No modules to freeze and FREEZE_MAIN not set — continuing without manifest."
+        echo " No modules to freeze, FREEZE_MAIN and FREEZE_BOOT not set to 'true'"
+        echo " continuing without manifest."
         echo "--------------------------------------------------------------------------------"
     fi
 fi
