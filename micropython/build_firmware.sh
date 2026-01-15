@@ -97,7 +97,7 @@ else
 
     generate_manifest=false
 
-    if [[ "$modules_nonempty" == true]]; then
+    if [[ "$modules_nonempty" == true ]]; then
         generate_manifest=true
     fi
 
