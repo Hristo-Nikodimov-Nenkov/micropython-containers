@@ -109,7 +109,7 @@ else
 
     freeze_boot="${FREEZE_BOOT:-false}"
     freeze_boot="${freeze_boot,,}"
-    if [[ -f "boot.py"]] && [[ "$freeze_boot" == "true" ]]; then
+    if [[ -f "boot.py" ]] && [[ "$freeze_boot" == "true" ]]; then
         generate_manifest=true
     fi
 
