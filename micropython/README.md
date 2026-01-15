@@ -21,6 +21,8 @@ The container uses environment variables as input for:
 - **PORT** - The MicroPython port. It should be **lower-case**.
 - **BOARD** - The board for which the firmware is intended. \
 It should be **upper-case** and **exactly the same** as in **micropython/ports/PORT/boards** directory.
+- **BOARD_VARIANT** - Some boards support variants like rp2 WEACTSTUDIO. \
+If you want to **use** this variable chech the **available** options.
 - **FREEZE_MAIN** - It should be **string** with value **"true"** or **"false"**. \
 It **allows** you to **freeze main.py** inside the firmware, if the file exist, very **handy** if you want to **flash and forget**.
 - **FREEZE_BOOT** - It should be **string** with value **"true"** or **"false"**. \

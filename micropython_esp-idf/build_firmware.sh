@@ -141,15 +141,21 @@ echo "==========================================="
 
 cd "$PORT_DIR"
 
-make clean
-make BOARD="$BOARD" submodules
+MAKE_ARGS=("BOARD=$BOARD")
+
+if [[ -n "$BOARD_VARIANT" ]]; then
+    MAKE_ARGS+=("BOARD_VARIANT=$BOARD_VARIANT")
+fi
 
 if [[ -f "$MANIFEST" ]]; then
-    echo "Using frozen manifest: $MANIFEST"
-    make BOARD="$BOARD" FROZEN_MANIFEST="$MANIFEST" -j2
-else
-    make BOARD="$BOARD" -j2
+    MAKE_ARGS+=("FROZEN_MANIFEST=$MANIFEST")
 fi
+
+make clean
+make "${MAKE_ARGS[@]}" submodules all
+echo "-----------------------------------------------------------------------------------------"
+
+make "${MAKE_ARGS[@]}" -j2
 
 OUTPUT_DIR="$PROJECT_DIR/dist"
 mkdir -p "$OUTPUT_DIR"
