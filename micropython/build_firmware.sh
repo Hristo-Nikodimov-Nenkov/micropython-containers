@@ -28,6 +28,12 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Set micropython and project directory as safe 
+# ---------------------------------------------------------------------------
+git config --global --add safe.directory /opt/micropython
+git config --global --add safe.directory "$PROJECT_DIR"
+
+# ---------------------------------------------------------------------------
 # Check for custom build_firmware.sh
 # ---------------------------------------------------------------------------
 PROJECT_SCRIPT="$PROJECT_DIR/build_firmware.sh"
