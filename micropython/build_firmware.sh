@@ -28,10 +28,10 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Set micropython and project directory as safe 
+# Check if HOST_UID and/or HOST_GID is set or fallback to 0 (root)
 # ---------------------------------------------------------------------------
-git config --global --add safe.directory /opt/micropython
-git config --global --add safe.directory "$PROJECT_DIR"
+TARGET_UID="${HOST_UID:-0}"
+TARGET_GID="${HOST_GID:-0}"
 
 # ---------------------------------------------------------------------------
 # Check for custom build_firmware.sh
@@ -60,7 +60,6 @@ fi
 MICROPY_DIR="/opt/micropython"
 PORT_DIR="${MICROPY_DIR}/ports/${PORT}"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
-
 
 echo "================================================================================"
 echo " Building MicroPython firmware for"
@@ -153,6 +152,8 @@ else
     fi
 fi
 
+chown -R root:root "$PROJECT_DIR"
+
 echo "========================================================================================="
 echo " Building firmware..."
 echo "========================================================================================="
@@ -212,3 +213,5 @@ if [[ "$generate_manifest" == true ]]; then
     rm "$PROJECT_DIR/manifest.py"
     echo "========================================================================================="
 fi
+
+chown -R "$TARGET_UID:$TARGET_GID" "$PROJECT_DIR"
