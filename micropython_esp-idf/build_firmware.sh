@@ -131,6 +131,11 @@ else
                 echo 'freeze(".", script="boot.py", opt=3)'
             fi
         } > "$MANIFEST"
+        echo "--------------------------------------------------------------------------------"
+        echo " Using generated manifest.py"
+        echo "--------------------------------------------------------------------------------"
+        cat $MANIFEST
+        echo "--------------------------------------------------------------------------------"
     else
         echo " No modules to freeze, FREEZE_MAIN and FREEZE_BOOT not set to 'true'"
         echo " continuing without manifest."
@@ -189,5 +194,5 @@ echo "==========================================================================
 if [[ "$generate_manifest" == true ]]; then
     echo " Removing generated manifest.py..."
     echo "--------------------------------------------------------------------------------"
-    rm $PROJECT_DIR/manifest.py
+    rm "$PROJECT_DIR/manifest.py"
     echo "========================================================================================="
