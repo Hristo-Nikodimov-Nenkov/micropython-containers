@@ -1,0 +1,38 @@
+[
+  {
+    "micropython": "v1.24.1",
+    "esp_idf": "v5.1.4",
+    "tags": "v1.24.1_v5.1.4,v1.24_v5.1.4,v1.24.1_v5.1,v1.24_v5.1",
+    "built": true
+  },
+  {
+    "micropython": "v1.24.1",
+    "esp_idf": "v5.2.1",
+    "tags": "v1.24.1_v5.2.1,v1.24_v5.2.1,v1.24.1_v5.2,v1.24_v5.2",
+    "built": true
+  },
+  {
+    "micropython": "v1.25.0",
+    "esp_idf": "v5.2.1",
+    "tags": "v1.25.0_v5.2.1,v1.25_v5.2.1",
+    "built": true
+  },
+  {
+    "micropython": "v1.25.0",
+    "esp_idf": "v5.2.2",
+    "tags": "v1.25.0_v5.2.2,v1.25_v5.2.2,v1.25.0_v5.2,v1.25_v5.2",
+    "built": true
+  },
+  {
+    "micropython": "v1.26.1",
+    "esp_idf": "v5.4.2",
+    "tags": "v1.26.1_v5.4.2,v1.26_v5.4.2,v1.26.1_v5.4,v1.26_v5.4",
+    "built": true
+  },
+  {
+    "micropython": "v1.27.0",
+    "esp_idf": "v5.5.1",
+    "tags": "v1.27.0_v5.5.1,v1.27_v5.5.1,v1.27.0_v5.5,v1.27_v5.5,latest",
+    "built": true
+  }
+]
