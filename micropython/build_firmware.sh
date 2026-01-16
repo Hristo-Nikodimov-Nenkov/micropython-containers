@@ -201,3 +201,4 @@ if [[ "$generate_manifest" == true ]]; then
     echo " Removing generated manifest.py..."
     rm "$PROJECT_DIR/manifest.py"
     echo "========================================================================================="
+fi
