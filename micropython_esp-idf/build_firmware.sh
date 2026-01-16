@@ -122,10 +122,10 @@ else
             if [[ "$modules_nonempty" == true ]]; then
                 echo 'freeze("modules", opt=3)'
             fi
-            if [[ "$freeze_main" == "true" ]]; then
+            if [[ "$freeze_main" == true ]]; then
                 echo 'freeze(".", script="main.py", opt=3)'
             fi
-            if [[ "$freeze_boot" == "true" ]]; then
+            if [[ "$freeze_boot" == true ]]; then
                 echo 'freeze(".", script="boot.py", opt=3)'
             fi
         } > "$MANIFEST"
@@ -183,3 +183,9 @@ echo " Output directory content:"
 echo "-----------------------------------------------------------------------------------------"
 ls -al $OUTPUT_DIR
 echo "========================================================================================="
+
+if [[ "$generate_manifest" == true ]]; then
+    echo " Removing generated manifest.py..."
+    echo "--------------------------------------------------------------------------------"
+    rm $PROJECT_DIR/manifest.py
+    echo "========================================================================================="
