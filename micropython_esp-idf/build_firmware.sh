@@ -162,10 +162,14 @@ if [[ -f "$MANIFEST" ]]; then
     MAKE_ARGS+=("FROZEN_MANIFEST=$MANIFEST")
 fi
 
-make clean
-make "${SUBMODULE_ARGS[@]}" submodules all
+echo " Make submodule args: $SUBMODULE_ARGS[@]"
+echo " Make args: $MAKE_ARGS[@]"
 echo "-----------------------------------------------------------------------------------------"
-make "${MAKE_ARGS[@]}" -j
+
+make clean
+make "$SUBMODULE_ARGS[@]" submodules all
+echo "-----------------------------------------------------------------------------------------"
+make "$MAKE_ARGS[@]" -j
 echo "-----------------------------------------------------------------------------------------"
 
 OUTPUT_DIR="$PROJECT_DIR/dist"
