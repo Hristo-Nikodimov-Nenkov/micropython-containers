@@ -83,6 +83,8 @@ export MPY_CROSS
 MANIFEST="$PROJECT_DIR/manifest.py"
 MODULES_DIR="$PROJECT_DIR/modules"
 
+cd $PROJECT_DIR
+
 if [[ -f "$MANIFEST" ]]; then
     echo " Using existing manifest.py"
     echo "--------------------------------------------------------------------------------"

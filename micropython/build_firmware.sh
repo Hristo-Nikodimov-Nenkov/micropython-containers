@@ -83,6 +83,8 @@ fi
 
 export MPY_CROSS
 
+cd $PROJECT_DIR
+
 if [[ -f "$MANIFEST" ]]; then
     echo " Using existing manifest.py"
     echo "--------------------------------------------------------------------------------"
