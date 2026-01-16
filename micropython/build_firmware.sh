@@ -21,7 +21,9 @@ elif [[ -n "${BITBUCKET_CLONE_DIR:-}" ]]; then
 elif [[ -n "${WORKSPACE:-}" ]]; then
     PROJECT_DIR="$(realpath "$WORKSPACE")"
 else
+    echo "================================================================================"
     echo "ERROR: PROJECT_DIR not set and no known CI workspace variable found"
+    echo "================================================================================"
     exit 1
 fi
 
@@ -53,37 +55,38 @@ MICROPY_DIR="/opt/micropython"
 PORT_DIR="${MICROPY_DIR}/ports/${PORT}"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 
-MANIFEST="$PROJECT_DIR/manifest.py"
-MODULES_DIR="$PROJECT_DIR/modules"
 
 echo "================================================================================"
 echo " Building MicroPython firmware for"
 echo "--------------------------------------------------------------------------------"
-echo " PORT: ${PORT}"
-echo " BOARD: ${BOARD}"
-echo "================================================================================"
+echo " PORT: ${PORT}, BOARD: ${BOARD}"
+echo "--------------------------------------------------------------------------------"
 
 if [[ ! -d "$PORT_DIR" ]]; then
     echo "ERROR: MicroPython port not found: $PORT_DIR"
-    echo "--------------------------------------------------------------------------------"
+    echo "================================================================================"
     exit 2
 fi
 
 if [[ ! -d "$BOARD_DIR" ]]; then
     echo "ERROR: Board not found: $BOARD_DIR"
-    echo "--------------------------------------------------------------------------------"
+    echo "================================================================================"
     exit 3
 fi
 
 MPY_CROSS="${MICROPY_DIR}/mpy-cross"
 if [[ ! -x "$MPY_CROSS" ]]; then
     echo "ERROR: mpy-cross not found at ${MPY_CROSS}"
+    echo "================================================================================"
     exit 4
 fi
 
 export MPY_CROSS
 
-cd $PROJECT_DIR
+MANIFEST="$PROJECT_DIR/manifest.py"
+MODULES_DIR="$PROJECT_DIR/modules"
+
+cd "$PROJECT_DIR"
 
 if [[ -f "$MANIFEST" ]]; then
     echo " Using existing manifest.py"
@@ -131,10 +134,11 @@ else
                 echo 'freeze(".", script="boot.py", opt=3)'
             fi
         } > "$MANIFEST"
+        
         echo "--------------------------------------------------------------------------------"
         echo " Using generated manifest.py"
         echo "--------------------------------------------------------------------------------"
-        cat $MANIFEST
+        cat "$MANIFEST"
         echo "--------------------------------------------------------------------------------"
     else
         echo " No modules to freeze, FREEZE_MAIN and FREEZE_BOOT not set to 'true'"
@@ -179,22 +183,21 @@ if [[ -d "$BUILD_DIR" ]]; then
     cp "$BUILD_DIR"/*.bin "$BUILD_DIR"/*.hex "$BUILD_DIR"/*.uf2 "$OUTPUT_DIR/" 2>/dev/null || true
 else
     echo "ERROR: Build directory not found: $BUILD_DIR"
-    echo "-----------------------------------------------------------------------------------------"
+    echo "========================================================================================="
     exit 5
 fi
 
 echo "========================================================================================="
 echo " Project directory content:"
 echo "-----------------------------------------------------------------------------------------"
-ls -al $PROJECT_DIR
+ls -al "$PROJECT_DIR"
 echo "========================================================================================="
 echo " Output directory content:"
 echo "-----------------------------------------------------------------------------------------"
-ls -al $OUTPUT_DIR
+ls -al "$OUTPUT_DIR"
 echo "========================================================================================="
 
 if [[ "$generate_manifest" == true ]]; then
     echo " Removing generated manifest.py..."
-    echo "--------------------------------------------------------------------------------"
     rm "$PROJECT_DIR/manifest.py"
     echo "========================================================================================="
