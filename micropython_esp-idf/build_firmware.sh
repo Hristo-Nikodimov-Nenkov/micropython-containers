@@ -28,6 +28,12 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Check if HOST_UID and/or HOST_GID is set or fallback to 0 (root)
+# ---------------------------------------------------------------------------
+TARGET_UID="${HOST_UID:-0}"
+TARGET_GID="${HOST_GID:-0}"
+
+# ---------------------------------------------------------------------------
 # Check for custom build_firmware.sh
 # ---------------------------------------------------------------------------
 PROJECT_SCRIPT="$PROJECT_DIR/build_firmware.sh"
@@ -56,6 +62,12 @@ echo " Building MicroPython firmware for"
 echo "--------------------------------------------------------------------------------"
 echo " PORT: esp32, BOARD: ${BOARD}"
 echo "================================================================================"
+
+if [[ ! -d "$BOARD_DIR" ]]; then
+    echo "ERROR: Board not found: $BOARD_DIR"
+    echo "================================================================================"
+    exit 3
+fi
 
 if [[ ! -d "$BOARD_DIR" ]]; then
     echo "ERROR: Board not found: $BOARD_DIR"
@@ -137,12 +149,35 @@ else
         echo "--------------------------------------------------------------------------------"
         cat "$MANIFEST"
         echo "--------------------------------------------------------------------------------"
+
+                # Copy modules directory if needed
+        if [[ "$modules_nonempty" == true ]]; then
+            echo "Copying modules/ to $BOARD_DIR"
+            cp -r "$MODULES_DIR" "$BOARD_DIR/"
+        fi
+
+        # Copy main.py if needed
+        if [[ "$freeze_main" == true ]]; then
+            echo "Copying main.py to $BOARD_DIR"
+            cp "$PROJECT_DIR/main.py" "$BOARD_DIR/"
+        fi
+
+        # Copy boot.py if needed
+        if [[ "$freeze_boot" == true && -f "boot.py" ]]; then
+            echo "Copying boot.py to $BOARD_DIR"
+            cp "$PROJECT_DIR/boot.py" "$BOARD_DIR/"
+        fi
+
+        echo "Copying manifest.py to $BOARD_DIR"
+        cp "$MANIFEST" "$BOARD_DIR/"
     else
         echo " No modules to freeze, FREEZE_MAIN and FREEZE_BOOT not set to 'true'"
         echo " continuing without manifest."
         echo "--------------------------------------------------------------------------------"
     fi
 fi
+
+chown -R root:root "$PROJECT_DIR"
 
 echo "========================================================================================="
 echo " Building firmware..."
@@ -174,6 +209,8 @@ echo "--------------------------------------------------------------------------
 
 OUTPUT_DIR="$PROJECT_DIR/dist"
 mkdir -p "$OUTPUT_DIR"
+echo " OUTPUT_DIR: $OUTPUT_DIR"
+echo "-----------------------------------------------------------------------------------------"
 
 BUILD_DIR="$PORT_DIR/build-$BOARD"
 
@@ -201,3 +238,5 @@ if [[ "$generate_manifest" == true ]]; then
     rm "$PROJECT_DIR/manifest.py"
     echo "========================================================================================="
 fi
+
+chown -R "$TARGET_UID:$TARGET_GID" "$PROJECT_DIR"

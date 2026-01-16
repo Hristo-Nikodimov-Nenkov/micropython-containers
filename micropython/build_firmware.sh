@@ -166,7 +166,6 @@ else
 
         echo "Copying manifest.py to $BOARD_DIR"
         cp "$MANIFEST" "$BOARD_DIR/"
-
     else
         echo " No modules to freeze, FREEZE_MAIN and FREEZE_BOOT not set to 'true'"
         echo " continuing without manifest."
@@ -203,7 +202,6 @@ make "${SUBMODULE_ARGS[@]}" submodules all -j2
 echo "-----------------------------------------------------------------------------------------"
 make "${MAKE_ARGS[@]}" -j2
 echo "-----------------------------------------------------------------------------------------"
-
 
 OUTPUT_DIR="$PROJECT_DIR/dist"
 mkdir -p "$OUTPUT_DIR"
