@@ -202,9 +202,9 @@ echo " Make args: $MAKE_ARGS[@]"
 echo "-----------------------------------------------------------------------------------------"
 
 make clean
-make "$SUBMODULE_ARGS[@]" submodules all -j2
+make "${SUBMODULE_ARGS[@]}" submodules all -j2
 echo "-----------------------------------------------------------------------------------------"
-make "$MAKE_ARGS[@]" -j2
+make "${MAKE_ARGS[@]}" -j2
 echo "-----------------------------------------------------------------------------------------"
 
 OUTPUT_DIR="$PROJECT_DIR/dist"
