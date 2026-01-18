@@ -69,12 +69,6 @@ if [[ ! -d "$BOARD_DIR" ]]; then
     exit 3
 fi
 
-if [[ ! -d "$BOARD_DIR" ]]; then
-    echo "ERROR: Board not found: $BOARD_DIR"
-    echo "================================================================================"
-    exit 3
-fi
-
 # -----------------------------------------------------------------------
 # Source ESP-IDF environment
 # -----------------------------------------------------------------------
@@ -194,7 +188,7 @@ fi
 MAKE_ARGS=("BOARD=$BOARD")
 
 if [[ -f "$MANIFEST" ]]; then
-    MAKE_ARGS+=("FROZEN_MANIFEST=$MANIFEST")
+    MAKE_ARGS+=("FROZEN_MANIFEST=$BOARD_DIR/manifest.py")
 fi
 
 echo " Make submodule args: ${SUBMODULE_ARGS[@]}"
