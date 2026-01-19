@@ -11,25 +11,93 @@ If you are using **ESP32** based board you should use [micropython_esp-idf](http
 
 ---
 
-## Supported MicroPython Versions
+## Supported MicroPython versions
 You can check which versions are available [here](https://hub.docker.com/r/rav3nh01m/micropython/tags). \
 The **tag** is the **version** of MicroPyhon the container will build. \
 **All packages are pre-installed.**
 
-## Environment variables
-The container uses environment variables as input for:
-- **PORT** - The MicroPython port. It should be **lower-case**.
-- **BOARD** - The board for which the firmware is intended. \
-It should be **upper-case** and **exactly the same** as in **micropython/ports/PORT/boards** directory.
-- **BOARD_VARIANT** - Some boards support variants like rp2 WEACTSTUDIO. \
-If you want to **use** this variable chech the **available** options.
-- **FREEZE_MAIN** - It should be **string** with value **"true"** or **"false"**. \
-It **allows** you to **freeze main.py** inside the firmware, if the file exist, very **handy** if you want to **flash and forget**.
-- **FREEZE_BOOT** - It should be **string** with value **"true"** or **"false"**. \
-It **allows** you to **freeze boot.py** inside the firmware, if the file exist, very **handy** when you want to **set safe state** of the board pins.
-- **PROJECT_DIR** - It's the **path** to the **project directory**. \
-If you are **using a CI/CD** then (in most cases) it will **detect** it and use the **CI workspace**, but **only if you use the baked-in build script**. \
-If you use **custom build_firmware.sh** you have to **handle this**.
+## Environment Variables
+The container uses the following environment variables as input:
+
+### Firmware configuration
+
+- **PORT**
+The MicroPython port to build.
+Must be lowercase.
+
+- **BOARD**
+The target board for which the firmware is built.
+**Must be uppercase** and must **exactly match** a directory name in: **micropython/ports/<PORT>/boards**
+
+- **BOARD_VARIANT**
+Some boards support variants (for example rp2 → WEACTSTUDIO).
+If you **want to use** this variable, check the **available variants** for the selected board.
+
+---
+
+### Freezing files into firmware
+
+- **FREEZE_MAIN** - **String** value: **"true"** or **"false"**. \
+When **enabled**, main.py (if present) is **frozen** into the firmware. \
+Useful for **flash-and-forget** deployments.
+
+- **FREEZE_BOOT** - **String** value: **"true"** or **"false"**. \
+When **enabled**, boot.py (if present) is **frozen** into the firmware. \
+Useful for setting a **safe default state** for **board pins** in **flash-and-forget** deployments.
+
+When **/modules** directory exists it's **content** is **frozen** relative to it. \
+If you have module like /modules/test_module you should use **"import test_module"** or **"from text_module import ..."**
+
+**When module with the same name exists in firmware and flash you'll receive an error.**
+
+---
+
+### Project directory
+
+- **PROJECT_DIR** - Path to the **project directory**.
+When running in CI/CD, the baked-in build_firmware.sh script will usually auto-detected and set to the CI workspace. \
+If you use a custom build_firmware.sh, you must handle this yourself.
+
+If used with "GitHub Actions":
+```yaml
+      - name: Run MicroPython build container
+        run: |
+          docker run --rm \
+            -e PROJECT_DIR=/project \
+            -v "$PWD:/project" \
+            rav3nh01m/micropython:latest
+```
+**PROJECT_DIR value must be the same as the mount path in the container, in this case "/project".**
+
+---
+
+### File ownership (DinD / CI support)
+- **HOST_UID** - Host User ID.
+- **HOST_GID** - Host Group ID.
+
+The container runs as **root**, so **all** files **created** inside the container are **owned by root:root** by default. \
+When using Docker-in-Docker (DinD), this can result in mixed ownership: \
+Files created by the host (for example in GitHub Actions) are owned by the host runner. \
+Files generated inside the container are owned by root:root \
+When HOST_UID and/or HOST_GID are set, the baked-in firmware.sh script will recursively change ownership of the project directory \
+and all its contents to: **HOST_UID:HOST_GID** \
+If you are using "GitHub Actions" you can pass both UID and GID like this:
+
+```yaml
+      - name: Get runner UID and GID
+        id: runner_ids
+        run: |
+          echo "uid=$(id -u)" >> "$GITHUB_OUTPUT"
+          echo "gid=$(id -g)" >> "$GITHUB_OUTPUT"
+
+      - name: Run MicroPython build container
+        run: |
+          docker run --rm \
+            -e HOST_UID=${{ steps.runner_ids.outputs.uid }} \
+            -e HOST_GID=${{ steps.runner_ids.outputs.gid }} \
+        ...
+```
+This ensures generated files are writable and manageable by the workflow after the container exits.
 
 ## Project layout.
 Your **project** should have this **layout**, if you **use** the **baked-in build script**.
@@ -40,6 +108,9 @@ There is **no need** to create **manifest.py**; it is **generated** before each 
 
 - **/main.py** – The entry point of the project.
 To **freeze it in the firmware**, use **FREEZE_MAIN="true"**.
+
+- **/boot.py** - (Optional) It is **executed before** main.py and is **used** to **set the board** to **safe state**.
+To **freeze it in the firmware**, use **FREEZE_BOOT="true"**.
 
 - **/dist** – The output directory.
 After a **successful** build the **firmware (.bin, .hex, or .uf2)** will appear here.
@@ -54,7 +125,9 @@ If your **code** is **not** in the **root directory** of the repo:
 For example, if they are in **/src** use **-v ./src:/var/project**
 
 ## Example usage
-You can use this container both for [manual](#manual-build) builds or inside a [CI/CD](#cicd-build) pipeline.
+You can use this container both for [manual](#manual-build) builds or inside a [CI/CD](#cicd-build) pipeline. \
+Check the way that CI/CD can use containers, "GitHub Actions" use DinD ( Docker-in-Docker ), \
+while Woodpecker CI uses separate container for each step.
 
 ### Manual build
 ---
@@ -145,10 +218,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Build firmware
-      - name: Build firmware
-        run: /usr/local/bin/build_firmware.sh
+      - name: Get runner UID and GID
+        id: runner_ids
+        run: |
+          echo "uid=$(id -u)" >> "$GITHUB_OUTPUT"
+          echo "gid=$(id -g)" >> "$GITHUB_OUTPUT"
 
+      - name: Run MicroPython build container
+        run: |
+          docker run --rm \
+            -e HOST_UID=${{ steps.runner_ids.outputs.uid }} \
+            -e HOST_GID=${{ steps.runner_ids.outputs.gid }} \
+            -e PORT=${{ vars.PORT }} \
+            -e BOARD=${{ vars.BOARD }} \
+            -e PROJECT_DIR="/project" \
+            -v 
+      
       # Upload firmware artifacts
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v3
@@ -253,6 +338,44 @@ You can reset the **run_number** for every version bump by:
 
 With the value of **IS_PRERELEASE** you select if the build is full release or pre-release. \
 The value **MUST** be set **BEFORE** the push to the **main branch!**
+
+### VS Code setup
+At the moment "MicroPico" extension for "VS Code" supports both rp2 and esp32 boards (with some kinks).
+
+You can use this in .vscode/settings.json
+```json
+{
+  "python.analysis.extraPaths": [
+    "./lib",
+    "./modules",
+    "micropython-stdlib-stubs-1.26.0.post3"
+  ],
+  "python.analysis.typeshedPaths": [
+    "micropython-stdlib-stubs-1.26.0.post3"
+  ],
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingModuleSource": "none"
+  },
+  "micropico.syncFolder": "",
+  "micropico.additionalSyncFolders": [],
+  "micropico.pyIgnore": [
+    "**/.git",
+    "**/.github",
+    "**/.vscode",
+    "**/env",
+    "**/venv",
+    "**/__pycache__",
+    "**/modules"
+  ],
+  "micropico.syncFileTypes": [
+    "py",
+    "mpy",
+    "json"
+  ],
+  "micropico.syncAllFileTypes": false
+}
+```
+The micropython-stdlib-stubs-1.26.0.post3 should match the version of micropython you intent to use. 
 
 ---
 ---
