@@ -27,7 +27,10 @@ else
     exit 1
 fi
 
-chown -R 0:0 /
+# ---------------------------------------------------------------------------
+# Change project directory ownership to root:root
+# ---------------------------------------------------------------------------
+chown -R 0:0 "$PROJECT_DIR"
 
 # ---------------------------------------------------------------------------
 # Check if HOST_UID and/or HOST_GID is set or fallback to 0 (root)
@@ -203,6 +206,10 @@ make "${MAKE_ARGS[@]}" -j2
 echo "-----------------------------------------------------------------------------------------"
 
 OUTPUT_DIR="$PROJECT_DIR/dist"
+if [[ -d "$OUTPUT_DIR"]]; then
+    rm -rf "$OUTPUT_DIR"
+fi
+
 mkdir -p "$OUTPUT_DIR"
 echo " OUTPUT_DIR: $OUTPUT_DIR"
 echo "-----------------------------------------------------------------------------------------"
