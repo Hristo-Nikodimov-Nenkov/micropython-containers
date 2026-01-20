@@ -72,7 +72,7 @@ fi
 # -----------------------------------------------------------------------
 # Source ESP-IDF environment
 # -----------------------------------------------------------------------
-echo "Sourcing ESP-IDF environment..."
+echo " Setup ESP-IDF environment..."
 echo "--------------------------------------------------------------------------------"
 source "$EXPORT_SH"
 echo "--------------------------------------------------------------------------------"
@@ -138,6 +138,7 @@ else
                 echo 'freeze(".", script="boot.py", opt=3)'
             fi
         } > "$MANIFEST"
+
         echo "--------------------------------------------------------------------------------"
         echo " Using generated manifest.py"
         echo "--------------------------------------------------------------------------------"
@@ -188,7 +189,7 @@ fi
 MAKE_ARGS=("BOARD=$BOARD")
 
 if [[ -f "$MANIFEST" ]]; then
-    MAKE_ARGS+=("FROZEN_MANIFEST=$BOARD_DIR/manifest.py")
+    MAKE_ARGS+=("FROZEN_MANIFEST=$PROJECT_DIR/manifest.py")
 fi
 
 echo " Make submodule args: ${SUBMODULE_ARGS[@]}"
@@ -233,4 +234,7 @@ if [[ "$generate_manifest" == true ]]; then
     echo "========================================================================================="
 fi
 
+echo "========================================================================================="
+echo " Changing project dir ownership to: $TARGET_UID:$TARGET_GID"
 chown -R "$TARGET_UID:$TARGET_GID" "$PROJECT_DIR"
+echo "========================================================================================="
