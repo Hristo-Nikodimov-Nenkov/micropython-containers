@@ -45,7 +45,6 @@ steps:
 
       cd "$CI_WORKSPACE"
 
-
       echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
       while read service; do
@@ -94,13 +93,8 @@ steps:
           echo " Starting - build.sh with $FLAGS"
 
           if sh "$SERVICE_PATH/build.sh" "$SERVICE_PATH" $FLAGS; then
-            echo "--------------------------------------------------------------------------------"
-            BUILD_OK=true
             echo "[INFO] Build succeeded for $service $VERSION"
-          fi
-
-          echo "--------------------------------------------------------------------------------"
-          if [ "$BUILD_OK" = "true" ]; then
+            echo "--------------------------------------------------------------------------------"
             tmp=$(mktemp)
             jq --arg v "$VERSION" \
               'map(if .micropython == $v then .built = true else . end)' \
@@ -111,8 +105,7 @@ steps:
             git push origin HEAD || true
           else
             echo "[ERROR] Build failed after $MAX_ATTEMPTS attempts for $service $VERSION"
-          fi
-
+  
           echo "================================================================================"
         done < /tmp/versions.list
       done < services.order
