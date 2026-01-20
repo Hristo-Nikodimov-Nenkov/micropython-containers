@@ -105,7 +105,8 @@ steps:
             git push origin HEAD || true
           else
             echo "[ERROR] Build failed after $MAX_ATTEMPTS attempts for $service $VERSION"
-  
+          fi
+          
           echo "================================================================================"
         done < /tmp/versions.list
       done < services.order
