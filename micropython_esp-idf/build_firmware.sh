@@ -28,6 +28,11 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Change project directory ownership to root:root
+# ---------------------------------------------------------------------------
+chown -R 0:0 "$PROJECT_DIR"
+
+# ---------------------------------------------------------------------------
 # Check if HOST_UID and/or HOST_GID is set or fallback to 0 (root)
 # ---------------------------------------------------------------------------
 TARGET_UID="${HOST_UID:-0}"
@@ -51,6 +56,11 @@ else
     echo "================================================================================"
 fi
 
+# ---------------------------------------------------------------------------
+# Required environment variables
+# ---------------------------------------------------------------------------
+: "${BOARD:?ERROR: BOARD must be set (example: ESP32_GENERIC, ESP32_GENERIC_C3)}"
+
 MICROPYTHON_DIR="/opt/micropython"
 IDF_PATH="/opt/esp-idf"
 EXPORT_SH="$IDF_PATH/export.sh"
@@ -61,13 +71,28 @@ echo "==========================================================================
 echo " Building MicroPython firmware for"
 echo "--------------------------------------------------------------------------------"
 echo " PORT: esp32, BOARD: ${BOARD}"
-echo "================================================================================"
+echo "--------------------------------------------------------------------------------"
+
+if [[ ! -d "$PORT_DIR" ]]; then
+    echo "ERROR: MicroPython port not found: $PORT_DIR"
+    echo "================================================================================"
+    exit 2
+fi
 
 if [[ ! -d "$BOARD_DIR" ]]; then
     echo "ERROR: Board not found: $BOARD_DIR"
     echo "================================================================================"
     exit 3
 fi
+
+MPY_CROSS="${MICROPY_DIR}/mpy-cross"
+if [[ ! -x "$MPY_CROSS" ]]; then
+    echo "ERROR: mpy-cross not found at ${MPY_CROSS}"
+    echo "================================================================================"
+    exit 4
+fi
+
+export MPY_CROSS
 
 # -----------------------------------------------------------------------
 # Source ESP-IDF environment
@@ -79,18 +104,11 @@ echo "--------------------------------------------------------------------------
 echo "ESP-IDF version: $(idf.py --version)"
 echo "--------------------------------------------------------------------------------"
 
-MPY_CROSS="${MICROPYTHON_DIR}/mpy-cross"
-if [[ ! -x "$MPY_CROSS" ]]; then
-    echo "ERROR: mpy-cross not found at ${MPY_CROSS}"
-    echo "================================================================================"
-    exit 4
-fi
-export MPY_CROSS
 
 MANIFEST="$PROJECT_DIR/manifest.py"
 MODULES_DIR="$PROJECT_DIR/modules"
 
-cd $PROJECT_DIR
+cd "$PROJECT_DIR"
 
 if [[ -f "$MANIFEST" ]]; then
     echo " Using existing manifest.py"
@@ -123,6 +141,7 @@ else
     fi
 
     if [[ "$generate_manifest" == true ]]; then
+        export CLEAR_MANIFEST=true
         echo " Generating manifest.py..."
         echo "--------------------------------------------------------------------------------"
         {
@@ -138,41 +157,34 @@ else
                 echo 'freeze(".", script="boot.py", opt=3)'
             fi
         } > "$MANIFEST"
-
+        
         echo "--------------------------------------------------------------------------------"
         echo " Using generated manifest.py"
         echo "--------------------------------------------------------------------------------"
         cat "$MANIFEST"
-        echo "--------------------------------------------------------------------------------"
+        echo "========================================================================================="
 
-                # Copy modules directory if needed
+        echo "========================================================================================="
+        echo " Copying files to freeze..."
+        echo "-----------------------------------------------------------------------------------------"
+        cp -v "$MANIFEST" "$BOARD_DIR"
+    
         if [[ "$modules_nonempty" == true ]]; then
-            echo "Copying modules/ to $BOARD_DIR"
-            cp -r "$MODULES_DIR" "$BOARD_DIR/"
+            cp -rv "$PROJECT_DIR/modules" "$BOARD_DIR"
         fi
-
-        # Copy main.py if needed
         if [[ "$freeze_main" == true ]]; then
-            echo "Copying main.py to $BOARD_DIR"
-            cp "$PROJECT_DIR/main.py" "$BOARD_DIR/"
+            cp -v "$PROJECT_DIR/main.py" "$BOARD_DIR"
         fi
-
-        # Copy boot.py if needed
-        if [[ "$freeze_boot" == true && -f "boot.py" ]]; then
-            echo "Copying boot.py to $BOARD_DIR"
-            cp "$PROJECT_DIR/boot.py" "$BOARD_DIR/"
+        if [[ "$freeze_boot" == true ]]; then
+            cp -v "$PROJECT_DIR/boot.py" "$BOARD_DIR"
         fi
-
-        echo "Copying manifest.py to $BOARD_DIR"
-        cp "$MANIFEST" "$BOARD_DIR/"
+        echo "========================================================================================="
     else
         echo " No modules to freeze, FREEZE_MAIN and FREEZE_BOOT not set to 'true'"
         echo " continuing without manifest."
         echo "--------------------------------------------------------------------------------"
     fi
 fi
-
-chown -R root:root "$PROJECT_DIR"
 
 echo "========================================================================================="
 echo " Building firmware..."
@@ -189,21 +201,26 @@ fi
 MAKE_ARGS=("BOARD=$BOARD")
 
 if [[ -f "$MANIFEST" ]]; then
-    MAKE_ARGS+=("FROZEN_MANIFEST=$PROJECT_DIR/manifest.py")
+    MAKE_ARGS+=("FROZEN_MANIFEST=$BOARD_DIR/manifest.py")
 fi
 
+echo "-----------------------------------------------------------------------------------------"
 echo " Make submodule args: ${SUBMODULE_ARGS[@]}"
 echo " Make args: ${MAKE_ARGS[@]}"
 echo "-----------------------------------------------------------------------------------------"
 
 make clean
-make "${SUBMODULE_ARGS[@]}" submodules all -j2
+make "${SUBMODULE_ARGS[@]}" submodules -j2
 echo "-----------------------------------------------------------------------------------------"
 make "${MAKE_ARGS[@]}" -j2
 echo "-----------------------------------------------------------------------------------------"
 
-OUTPUT_DIR="$PROJECT_DIR/dist"
+# -----------------------------------------------------------------------
+# Create "dist" directory. 
+# -----------------------------------------------------------------------
+rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
+
 echo " OUTPUT_DIR: $OUTPUT_DIR"
 echo "-----------------------------------------------------------------------------------------"
 
@@ -218,6 +235,14 @@ else
     exit 5
 fi
 
+# -----------------------------------------------------------------------
+# Change ownership of $PROJECT_DIR to specified UID:GID
+# -----------------------------------------------------------------------
+chown -R "$TARGET_UID:$TARGET_GID" "$PROJECT_DIR"
+
+# -----------------------------------------------------------------------
+# List project and dist directories content.
+# -----------------------------------------------------------------------
 echo "========================================================================================="
 echo " Project directory content:"
 echo "-----------------------------------------------------------------------------------------"
@@ -228,13 +253,11 @@ echo "--------------------------------------------------------------------------
 ls -al "$OUTPUT_DIR"
 echo "========================================================================================="
 
-if [[ "$generate_manifest" == true ]]; then
+# -----------------------------------------------------------------------
+# Remove manifest.py if auto-generated.
+# -----------------------------------------------------------------------
+if [[ "${generate_manifest:-}" == true ]]; then
     echo " Removing generated manifest.py..."
-    rm "$PROJECT_DIR/manifest.py"
+    rm -f "$PROJECT_DIR/manifest.py"
     echo "========================================================================================="
 fi
-
-echo "========================================================================================="
-echo " Changing project dir ownership to: $TARGET_UID:$TARGET_GID"
-chown -R "$TARGET_UID:$TARGET_GID" "$PROJECT_DIR"
-echo "========================================================================================="
