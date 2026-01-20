@@ -149,7 +149,23 @@ else
         echo " Using generated manifest.py"
         echo "--------------------------------------------------------------------------------"
         cat "$MANIFEST"
-        echo "--------------------------------------------------------------------------------"
+        echo "========================================================================================="
+
+        echo "========================================================================================="
+        echo " Copying files to freeze..."
+        echo "-----------------------------------------------------------------------------------------"
+        cp -v "$MANIFEST" "$BOARD_DIR"
+    
+        if [[ "$modules_nonempty" == true ]]; then
+            cp -rv "$PROJECT_DIR/modules" "$BOARD_DIR"
+        fi
+        if [[ "$freeze_main" == true ]]; then
+            cp -v "$PROJECT_DIR/main.py" "$BOARD_DIR"
+        fi
+        if [[ "$freeze_boot" == true ]]; then
+            cp -v "$PROJECT_DIR/boot.py" "$BOARD_DIR"
+        fi
+        echo "========================================================================================="
     else
         echo " No modules to freeze, FREEZE_MAIN and FREEZE_BOOT not set to 'true'"
         echo " continuing without manifest."
@@ -157,23 +173,6 @@ else
     fi
 fi
 
-if [[ "$generate_manifest" == true ]]; then
-    echo "========================================================================================="
-    echo " Copying files to freeze..."
-    echo "-----------------------------------------------------------------------------------------"
-    cp -v "$MANIFEST" "$BOARD_DIR"
-
-    if [[ "$modules_nonempty" == true ]]; then
-        cp -rv "$PROJECT_DIR/modules" "$BOARD_DIR"
-    fi
-    if [[ "$freeze_main" == true ]]; then
-        cp -v "$PROJECT_DIR/main.py" "$BOARD_DIR"
-    fi
-    if [[ "$freeze_boot" == true ]]; then
-        cp -v "$PROJECT_DIR/boot.py" "$BOARD_DIR"
-    fi
-    echo "========================================================================================="
-fi
 
 echo "========================================================================================="
 echo " Building firmware..."
