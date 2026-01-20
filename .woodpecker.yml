@@ -104,9 +104,9 @@ steps:
             git commit -m "CI: mark $service $VERSION as built [skip ci]" || true
             git push origin HEAD || true
           else
-            echo "[ERROR] Build failed after $MAX_ATTEMPTS attempts for $service $VERSION"
+            echo "[ERROR] Build failed for $service $VERSION with $FLAGS"
           fi
-          
+
           echo "================================================================================"
         done < /tmp/versions.list
       done < services.order
