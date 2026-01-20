@@ -27,6 +27,8 @@ else
     exit 1
 fi
 
+chown -R 0:0 /
+
 # ---------------------------------------------------------------------------
 # Check if HOST_UID and/or HOST_GID is set or fallback to 0 (root)
 # ---------------------------------------------------------------------------
@@ -152,7 +154,24 @@ else
     fi
 fi
 
-chown -R root:root "$PROJECT_DIR"
+if [[ "$generate_manifest" == true ]]; then
+    echo "========================================================================================="
+    echo " Copying files to freeze..."
+    echo "-----------------------------------------------------------------------------------------"
+    cp -v "$MANIFEST" "$BOARD_DIR"
+
+
+    if [[ "$modules_nonempty" == true ]]; then
+        cp -rv "$MANIFEST" "$BOARD_DIR"
+    fi
+    if [[ "$freeze_main" == true ]]; then
+        cp -v "$PROJECT_DIR/main.py" "$BOARD_DIR"
+    fi
+    if [[ "$freeze_boot" == true ]]; then
+        cp -v "$PROJECT_DIR/boot.py" "$BOARD_DIR"
+    fi
+    echo "========================================================================================="
+fi
 
 echo "========================================================================================="
 echo " Building firmware..."
@@ -169,15 +188,16 @@ fi
 MAKE_ARGS=("BOARD=$BOARD")
 
 if [[ -f "$MANIFEST" ]]; then
-    MAKE_ARGS+=("FROZEN_MANIFEST=$PROJECT_DIR/manifest.py")
+    MAKE_ARGS+=("FROZEN_MANIFEST=$BOARD_DIR/manifest.py")
 fi
 
+echo "-----------------------------------------------------------------------------------------"
 echo " Make submodule args: ${SUBMODULE_ARGS[@]}"
 echo " Make args: ${MAKE_ARGS[@]}"
 echo "-----------------------------------------------------------------------------------------"
 
 make clean
-make "${SUBMODULE_ARGS[@]}" submodules all -j2
+make "${SUBMODULE_ARGS[@]}" submodules -j2
 echo "-----------------------------------------------------------------------------------------"
 make "${MAKE_ARGS[@]}" -j2
 echo "-----------------------------------------------------------------------------------------"
