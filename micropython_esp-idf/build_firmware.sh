@@ -85,7 +85,7 @@ if [[ ! -d "$BOARD_DIR" ]]; then
     exit 3
 fi
 
-MPY_CROSS="${MICROPY_DIR}/mpy-cross"
+MPY_CROSS="${MICROPYTHON_DIR}/mpy-cross"
 if [[ ! -x "$MPY_CROSS" ]]; then
     echo "ERROR: mpy-cross not found at ${MPY_CROSS}"
     echo "================================================================================"

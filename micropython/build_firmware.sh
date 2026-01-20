@@ -62,8 +62,8 @@ fi
 : "${PORT:?ERROR: PORT must be set (example: rp2, stm32, nrf)}"
 : "${BOARD:?ERROR: BOARD must be set (example: RPI_PICO, RPI_PICO2_W)}"
 
-MICROPY_DIR="/opt/micropython"
-PORT_DIR="${MICROPY_DIR}/ports/${PORT}"
+MICROPYTHON_DIR="/opt/micropython"
+PORT_DIR="${MICROPYTHON_DIR}/ports/${PORT}"
 BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 
 echo "================================================================================"
@@ -84,7 +84,7 @@ if [[ ! -d "$BOARD_DIR" ]]; then
     exit 3
 fi
 
-MPY_CROSS="${MICROPY_DIR}/mpy-cross"
+MPY_CROSS="${MICROPYTHON_DIR}/mpy-cross"
 if [[ ! -x "$MPY_CROSS" ]]; then
     echo "ERROR: mpy-cross not found at ${MPY_CROSS}"
     echo "================================================================================"
