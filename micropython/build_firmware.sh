@@ -163,7 +163,6 @@ if [[ "$generate_manifest" == true ]]; then
     echo "-----------------------------------------------------------------------------------------"
     cp -v "$MANIFEST" "$BOARD_DIR"
 
-
     if [[ "$modules_nonempty" == true ]]; then
         cp -rv "$MANIFEST" "$BOARD_DIR"
     fi
