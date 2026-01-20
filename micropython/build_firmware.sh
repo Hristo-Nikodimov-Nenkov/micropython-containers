@@ -164,7 +164,7 @@ if [[ "$generate_manifest" == true ]]; then
     cp -v "$MANIFEST" "$BOARD_DIR"
 
     if [[ "$modules_nonempty" == true ]]; then
-        cp -rv "$MANIFEST" "$BOARD_DIR"
+        cp -rv "$PROJECT_DIR/modules" "$BOARD_DIR"
     fi
     if [[ "$freeze_main" == true ]]; then
         cp -v "$PROJECT_DIR/main.py" "$BOARD_DIR"
