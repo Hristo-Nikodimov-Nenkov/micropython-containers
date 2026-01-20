@@ -145,27 +145,6 @@ else
         echo "--------------------------------------------------------------------------------"
         cat "$MANIFEST"
         echo "--------------------------------------------------------------------------------"
-        
-        # Copy modules directory if needed
-        if [[ "$modules_nonempty" == true ]]; then
-            echo "Copying modules/ to $BOARD_DIR"
-            cp -r "$MODULES_DIR" "$BOARD_DIR/"
-        fi
-
-        # Copy main.py if needed
-        if [[ "$freeze_main" == true ]]; then
-            echo "Copying main.py to $BOARD_DIR"
-            cp "$PROJECT_DIR/main.py" "$BOARD_DIR/"
-        fi
-
-        # Copy boot.py if needed
-        if [[ "$freeze_boot" == true && -f "boot.py" ]]; then
-            echo "Copying boot.py to $BOARD_DIR"
-            cp "$PROJECT_DIR/boot.py" "$BOARD_DIR/"
-        fi
-
-        echo "Copying manifest.py to $BOARD_DIR"
-        cp "$MANIFEST" "$BOARD_DIR/"
     else
         echo " No modules to freeze, FREEZE_MAIN and FREEZE_BOOT not set to 'true'"
         echo " continuing without manifest."
@@ -190,7 +169,7 @@ fi
 MAKE_ARGS=("BOARD=$BOARD")
 
 if [[ -f "$MANIFEST" ]]; then
-    MAKE_ARGS+=("FROZEN_MANIFEST=$BOARD_DIR/manifest.py")
+    MAKE_ARGS+=("FROZEN_MANIFEST=$PROJECT_DIR/manifest.py")
 fi
 
 echo " Make submodule args: ${SUBMODULE_ARGS[@]}"
