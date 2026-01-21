@@ -1,29 +1,13 @@
-# This workflow will generate a release on every push to "main" branch
-
-# It will generate 2 .zip files
-# - firmware.zip - the built firmware
-# - code.zip - an easy to upload code that is not yet frozen
-
-# the .vscode directory should not be in .gitignore
-# that will set up the code directory as the project directory with all extensions and settings.
-
-# Before pushing the workflow you should add all necesery variables like:
-# VERSION, MAJOR, MINOR - used to append a version to your build.
-# MICROPYTHON_VERSION - "latest" (stable) will be used if the variable is not set.
-# FREEZE_BOOT and FREEZE_MAIN - You can freeze boot.py and/or main.py into the built firmware for "flash-and-forget"
-# In Settings > Actions > General | Workflow permissions | you should set to "Read and write permissions" 
-
-# After all this done just push the workflow in /.github/workflows/build_and_release.yml
-# If you want to reset the "run_number" you can add the version to match the variables in the workflow name like:
-# build_and_release-v0.4.2.x.yml and change the variables be before pushing the changed workflow name.
-# In this case VERSION should be 0, MAJOR should be 4, MINOR should be 2.
-# If you change MAJOR to 5 and then change the workflow name to build_and_release-v0.5.2.x.yml
-# When you push the change to main branch the "run_number" will reset and you will have clean and easy way to manage versions.
-
+# This workflow will build and release custom firmware on every push to "main" branch
+# If you use name like build_x.y.z.yml where: x is the value of VERSION, y is the value of MAJOR, z is the value of MINOR
+# and you change the values of the variables before pushing updated name of the workflow
+# you have a clean and easy way to manage versions and releases
+# {{github.run_number}} resets when you change the file name of the workflow. 
 name: Build and release
 
 env:
-  CI: false
+  # The VERSION, MAJOR & MINOR actions variables must be set before workflow push to main brach.
+  # You can set them in Settings > Secrets and variables > Actions | Variables |
   BUILD_VERSION: ${{ vars.VERSION }}.${{ vars.MAJOR }}.${{ vars.MINOR }}.${{ github.run_number }}
 
 on:
@@ -43,62 +27,80 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Determine Docker image tag
-        id: docker_tag
+      # The IMAGE_TAG actions variable must be set before workflow push to main brach.
+      # If you preffer using environment variables change "vars." to "env."
+      # You can set them both in workflow "env:" section or in Settings > Secrets and variables > Actions
+      - name: Determine Docker image
+        id: docker_image
         run: |
-          IMAGE_TAG="${{vars.MICROPYTHON_VERSION}}"
-          IMAGE_NAME="rav3nh01m/micropython:$IMAGE_TAG"
+          IMAGE_BASE="rav3nh01m/micropython_esp-idf"
+          IMAGE="$IMAGE_BASE:${{ vars.IMAGE_TAG }}"
 
-          echo "Checking for image: $IMAGE_NAME"
+          echo "Checking for image: $IMAGE"
 
-          if docker pull "$IMAGE_NAME"; then
-            echo "Using tag: $IMAGE_TAG"
+          if docker pull "$IMAGE"; then
+            echo "Using image: $IMAGE"
           else
-            echo "Tag not found. Falling back to latest."
-            IMAGE_TAG="latest"
-            docker pull "rav3nh01m/micropython:latest"
+            echo "Image not found. Falling back to latest."
+            IMAGE="$IMAGE_BASE:latest"
+            docker pull "$IMAGE"
           fi
 
-          echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+      
+      # The container runs as "root" user, so HOST_UID and HOST_GID will set
+      # generated files ownership to runner user:group
 
-      - name: Get runner UID and GID
-        id: runner_ids
-        run: |
-          echo "uid=$(id -u)" >> "$GITHUB_OUTPUT"
-          echo "gid=$(id -g)" >> "$GITHUB_OUTPUT"
-
+      # The value of PROJECT_DIR and container mount path must match i.e "/project" in this case
+      # You can set FREEZE_BOOT and FREEZE_MAIN as "environment" or "actions variables"
+      # just check if you are using the correct type i.e "env." or "vars." 
       - name: Run MicroPython build container
         run: |
-          docker run --rm \
-            -e HOST_UID=${{ steps.runner_ids.outputs.uid }} \
-            -e HOST_GID=${{ steps.runner_ids.outputs.gid }} \
-            -e PROJECT_DIR=/project \
-            -e PORT=${{ vars.PORT }} \
-            -e BOARD=${{ vars.BOARD }} \
-            -e FREEZE_BOOT=${{ vars.FREEZE_BOOT }} \
-            -e FREEZE_MAIN=${{ vars.FREEZE_MAIN }} \
-            -v "$PWD:/project" \
-            rav3nh01m/micropython:${{ steps.docker_tag.outputs.image_tag }}
+          HOST_UID=$(id -u)
+          HOST_GID=$(id -g)
 
-      - name: Copy firmware UF2
+          docker run --rm \
+            -e HOST_UID="$HOST_UID" \
+            -e HOST_GID="$HOST_GID" \
+            -e PROJECT_DIR=/project \
+            -e BOARD="${{ vars.BOARD }}" \
+            -e FREEZE_BOOT="${{ vars.FREEZE_BOOT }}" \
+            -e FREEZE_MAIN="${{ vars.FREEZE_MAIN }}" \
+            -v "$PWD:/project" \
+            "${{ steps.docker_image.outputs.image }}"
+
+      - name: Copy firmware with version in file name
         run: |
-          mkdir -p ./release
-          cp ./dist/firmware.uf2 ./release/firmware-v${{env.BUILD_VERSION}}.uf2
+          mkdir -p release
+          for f in dist/*.bin; do
+            base=$(basename "$f" .bin)
+            cp "$f" "release/${base}-v${{ env.BUILD_VERSION }}.bin"
+          done
 
       - name: Create firmware zip
         working-directory: ./release
-        run: zip -j firmware-v${{env.BUILD_VERSION}}.zip firmware-v${{env.BUILD_VERSION}}.uf2
+        run: zip -j firmware-v${{env.BUILD_VERSION}}.zip firmware-v${{env.BUILD_VERSION}}.bin
 
-      - name: Clean firmware modules & manifest
+      - name: Create split firmware zip
+        working-directory: ./release
         run: |
-          rm -rf ./modules
-          rm -f ./manifest.py
+          zip splitted_firmware-v${{ env.BUILD_VERSION }}.zip \
+            micropython*.bin \
+            bootloader*.bin \
+            partition-table*.bin
 
-      - name: Create code directory
-        run: mkdir -p ./release/code
+      # This step is used when you need to upload files to controller file system
+       
+      # It depends on MicroPico extension for VS Code
+      # You can use any IDE you like, just adjust the files you need to upload.
       
-      - name: Copy .vscode
+      # This allows for freezing code inside the firmware and uploading the lib
+      # directory as code
+      # !!! If module exists in modules and lib you will receive un error !!! 
+      - name: Create code.zip
         run: |
+          mkdir -p ./release/code
+      
           if [ -d ".vscode" ]; then
             cp -R .vscode ./release/code/
             echo "Copied .vscode"
@@ -106,8 +108,6 @@ jobs:
             echo ".vscode directory not found — skipping"
           fi
 
-      - name: Copy lib
-        run: |
           if [ -d "lib" ]; then
             cp -R lib ./release/code/
             echo "Copied lib"
@@ -115,6 +115,7 @@ jobs:
             echo "lib directory not found — skipping"
           fi
 
+      # Conditional step that handles where main.py is stored - firmware or code
       - name: Copy main.py (if not frozen)
         if: ${{ vars.FREEZE_MAIN != 'true' }}
         run: |
@@ -125,6 +126,7 @@ jobs:
             echo "main.py not found — skipping"
           fi
 
+      # Conditional step that handles where boot.py is stored - firmware or code
       - name: Copy boot.py (if not frozen)
         if: ${{ vars.FREEZE_BOOT != 'true' }}
         run: |
@@ -139,6 +141,8 @@ jobs:
         working-directory: ./release/code
         run: zip -r ../code-v${{env.BUILD_VERSION}}.zip .
 
+      # Mak sure that you've set Settings > Actions > General - Workflow permissions to "Read and write permissions".
+      # Also don't forget to press the "Save" button.
       - name: Authenticate Git
         run: git remote set-url origin https://x-access-token:${{secrets.GITHUB_TOKEN}}@github.com/${{github.repository}}
 
@@ -149,6 +153,7 @@ jobs:
           git tag v${{env.BUILD_VERSION}}
           git push origin v${{env.BUILD_VERSION}}
 
+      # Uploads files to release
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -157,6 +162,7 @@ jobs:
           prerelease: ${{vars.IS_PRERELEASE}}
           files: |
             ./release/firmware-v${{env.BUILD_VERSION}}.zip
+            ./release/splitted_firmware-v${{ env.BUILD_VERSION }}.zip
             ./release/code-v${{env.BUILD_VERSION}}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
