@@ -65,7 +65,20 @@ In "Woodpecker CI"
     PORT: rp2
     BOARD: RPI_PICO_W
 ```
-This will execute the baked-in build script and 
+
+This will execute the baked-in build script and generated .bin, .hex or .uf2 files (dependong on port/board) will be in /dist directory relative to CI workspace.
+If you receive un error add PROJECT_DIR environment variable and mount the CI workspace using:
+```yaml
+- name: Build firmware
+  image: rav3nh01m/micropython:latest
+  environment:
+    PORT: rp2
+    BOARD: RPI_PICO_W
+    PROJECT_DIR: /project
+  volumes:
+    ${CI_WORKSPACE}:/project
+```
+
 
 When the workflow uses DinD ( Docker in Docker) you should set the environment variable.
 In "GitHub Actions:"
@@ -259,6 +272,7 @@ jobs:
             -e HOST_UID=$(id -u) \
             -e HOST_GID=$(id -g) \
             -e PROJECT_DIR=/project \
+            -e PORT=${{ vars.PORT }}
             -e BOARD="${{ vars.BOARD }}" \
 #            -e FREEZE_BOOT="${{ vars.FREEZE_BOOT }}" \
 #            -e FREEZE_MAIN="${{ vars.FREEZE_MAIN }}" \
@@ -341,6 +355,7 @@ jobs:
             -e HOST_UID=$(id -u) \
             -e HOST_GID=$(id -g) \
             -e PROJECT_DIR=/project \
+            -e PORT="${{ vars.PORT }}" \
             -e BOARD="${{ vars.BOARD }}" \
 #            -e FREEZE_BOOT="${{ vars.FREEZE_BOOT }}" \
 #            -e FREEZE_MAIN="${{ vars.FREEZE_MAIN }}" \
