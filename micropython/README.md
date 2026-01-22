@@ -480,7 +480,7 @@ You can use this in .vscode/settings.json
   "micropico.syncAllFileTypes": false
 }
 ```
-The micropython-stdlib-stubs-1.26.0.post3 should match the version of micropython you intent to use. \
+The micropython-stdlib-stubs version should match the version of micropython you intent to use. \
 And in this case is installed using pip
 ```cmd
 pip install micropython-stdlib-stubs==1.27.0
