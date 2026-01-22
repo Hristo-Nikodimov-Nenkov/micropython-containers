@@ -31,7 +31,7 @@ The target board for which the firmware is built.
 
 - **BOARD_VARIANT**
 Some boards support variants (for example rp2 → WEACTSTUDIO).
-If you **want to use** this variable, check the **available variants** for the selected board.
+If you **want to use** this variable, check the **available variants** for that specific board.
 
 ---
 
@@ -43,7 +43,7 @@ Useful for **flash-and-forget** deployments.
 
 - **FREEZE_BOOT** - **String** value: **"true"** or **"false"**. \
 When **enabled**, boot.py (if present) is **frozen** into the firmware. \
-Useful for setting a **safe default state** for **board pins** in **flash-and-forget** deployments.
+Useful for setting a **safe default state** of **board pins** in **flash-and-forget** deployments.
 
 When **/modules** directory exists it's **content** is **frozen** relative to it. \
 If you have module like /modules/test_module you should use **"import test_module"** or **"from text_module import ..."**
@@ -55,19 +55,31 @@ If you have module like /modules/test_module you should use **"import test_modul
 ### Project directory
 
 - **PROJECT_DIR** - Path to the **project directory**.
-When running in CI/CD, the baked-in build_firmware.sh script will usually auto-detected and set to the CI workspace. \
-If you use a custom build_firmware.sh, you must handle this yourself.
 
-If used with "GitHub Actions":
+When running in CI/CD and the container is used as image the baked-in build_firmware.sh script will usually auto-detected and use the CI workspace. \
+In "Woodpecker CI"
 ```yaml
-      - name: Run MicroPython build container
-        run: |
-          docker run --rm \
-            -e PROJECT_DIR=/project \
-            -v "$PWD:/project" \
-            rav3nh01m/micropython:latest
+- name: Build firmware
+  image: rav3nh01m/micropython:latest
+  environment:
+    PORT: rp2
+    BOARD: RPI_PICO_W
+```
+This will execute the baked-in build script and 
+
+When the workflow uses DinD ( Docker in Docker) you should set the environment variable.
+In "GitHub Actions:"
+```yaml
+- name: Run MicroPython build container
+  run: |
+    docker run --rm \
+      -e PROJECT_DIR=/project \
+      -v "$PWD:/project" \
+      rav3nh01m/micropython:latest
 ```
 **PROJECT_DIR value must be the same as the mount path in the container, in this case "/project".**
+
+**If you use a custom build_firmware.sh, you must handle this yourself**.
 
 ---
 
@@ -81,35 +93,42 @@ Files created by the host (for example in GitHub Actions) are owned by the host 
 Files generated inside the container are owned by root:root \
 When HOST_UID and/or HOST_GID are set, the baked-in firmware.sh script will recursively change ownership of the project directory \
 and all its contents to: **HOST_UID:HOST_GID** \
+
 If you are using "GitHub Actions" you can pass both UID and GID like this:
-
 ```yaml
-      - name: Get runner UID and GID
-        id: runner_ids
-        run: |
-          echo "uid=$(id -u)" >> "$GITHUB_OUTPUT"
-          echo "gid=$(id -g)" >> "$GITHUB_OUTPUT"
+- name: Run MicroPython build container
+  run: |
+    UID=$(id -u)
+    GID=$(id -g)
 
-      - name: Run MicroPython build container
-        run: |
-          docker run --rm \
-            -e HOST_UID=${{ steps.runner_ids.outputs.uid }} \
-            -e HOST_GID=${{ steps.runner_ids.outputs.gid }} \
-        ...
+    docker run --rm \
+      -e HOST_UID=$UID \
+      -e HOST_GID=$GID \
+  ...
 ```
+or:
+```yaml
+- name: Run MicroPython build container
+  run: |
+    docker run --rm \
+      -e HOST_UID=$(id -u) \
+      -e HOST_GID=$(id -g) \
+  ...
+```
+
 This ensures generated files are writable and manageable by the workflow after the container exits.
 
 ## Project layout.
 Your **project** should have this **layout**, if you **use** the **baked-in build script**.
 - **/modules** – Modules that have to be frozen in the firmware. \
-There is **no need** to create **manifest.py**; it is **generated** before each build **when the directory exists**.
+There is **no need** to create **manifest.py**; it is **generated** before each build **when the directory exists and is not empty**.
 
-- **/lib** – Modules that are **not frozen** and will be **uploaded** to the microcontroller.
+- **/lib** – Modules that are **not frozen** and has to be **uploaded** to the microcontroller. 
 
 - **/main.py** – The entry point of the project.
 To **freeze it in the firmware**, use **FREEZE_MAIN="true"**.
 
-- **/boot.py** - (Optional) It is **executed before** main.py and is **used** to **set the board** to **safe state**.
+- **/boot.py** - (Optional) It is **executed before** main.py and is **used** to **set board pins** to **safe state**.
 To **freeze it in the firmware**, use **FREEZE_BOOT="true"**.
 
 - **/dist** – The output directory.
@@ -120,9 +139,10 @@ After a **successful** build the **firmware (.bin, .hex, or .uf2)** will appear 
 - **/manifest.py** – If this **file exists** in your project, it will be **used** as **manifest** when building the firmware. 
 
 ### Project root not in the repo root
-If your **code** is **not** in the **root directory** of the repo:
-- **mount** the directory **containing** the **main.py** file and/or **modules** directories.
-For example, if they are in **/src** use **-v ./src:/var/project**
+If your **code** is **not** in the **root directory** of the repo then you should **mount** the directory \
+**containing** the **main.py** file and/or **modules** directories. For example, if they are in **/src** use:
+- **-v ./src:/project**
+- **PROJECT_DIR=/project**
 
 ## Example usage
 You can use this container both for [manual](#manual-build) builds or inside a [CI/CD](#cicd-build) pipeline. \
@@ -140,13 +160,13 @@ docker pull rav3nh01m/micropython:latest
 After that, run:
 ```bash
 docker run --rm \
--e PROJECT_DIR="/var/project" \
+-e PROJECT_DIR="/project" \
 -e PORT=rp2 \
 -e BOARD=RPI_PICO2 \
--v ./:/var/project \
+-v ./:/project \
 rav3nh01m/micropython:latest
 ```
-The **path** you **mount** the project ( -v ./:**/var/project** ) must be the same as **PROJECT_DIR** ( -e PROJECT_DIR="**/var/project**").
+The **path** you **mount** the project ( -v ./:**/project** ) must be the same as **PROJECT_DIR** ( -e PROJECT_DIR="**/project**").
 
 ---
 
@@ -191,9 +211,8 @@ You can use GitHub Actions, Woodpecker, GitLab CI or any other CI/CD system to s
 
 ---
 
-**Before pushing this workflow to GitHub you must create MICROPYTHON_VERSION, PORT and BOARD actions variables (not Environment).** \
-**Or you can create PORT and BOARD as environment variables and remove the env section from the workflow, but MICROPYTHON_VERSION must be actions variable!**
-
+**Before pushing this workflow to GitHub you must create IMAGE_TAG, PORT and BOARD actions variables (not Environment).** \
+If you want to **use environment variables** you should change **\${{ vars. }}** to **\${{ env. }}**
 ```yaml
 name: Build firmware (upload artifact)
 
@@ -204,36 +223,48 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container:
-      image: rav3nh01m/micropython:${{ vars.MICROPYTHON_VERSION }}
-      options: --entrypoint ""
-
-    env:
-      PORT: ${{ vars.PORT }}
-      BOARD: ${{ vars.BOARD }}
-    
+    runs-on: ubuntu-latest    
     steps:
       # Checkout project code
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get runner UID and GID
-        id: runner_ids
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # The IMAGE_TAG actions variable must be set before workflow push to main brach.
+      # If you preffer using environment variables change "vars." to "env."
+      # You can set them both in workflow "env:" section or in Settings > Secrets and variables > Actions
+      - name: Determine Docker image
+        id: docker_image
         run: |
-          echo "uid=$(id -u)" >> "$GITHUB_OUTPUT"
-          echo "gid=$(id -g)" >> "$GITHUB_OUTPUT"
+          IMAGE_BASE="rav3nh01m/micropython"
+          IMAGE="$IMAGE_BASE:${{ vars.IMAGE_TAG }}"
+
+          echo "Checking for image: $IMAGE"
+
+          if docker pull "$IMAGE"; then
+            echo "Using image: $IMAGE"
+          else
+            echo "Image not found. Falling back to latest."
+            IMAGE="$IMAGE_BASE:latest"
+            docker pull "$IMAGE"
+          fi
+
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
 
       - name: Run MicroPython build container
         run: |
           docker run --rm \
-            -e HOST_UID=${{ steps.runner_ids.outputs.uid }} \
-            -e HOST_GID=${{ steps.runner_ids.outputs.gid }} \
-            -e PORT=${{ vars.PORT }} \
-            -e BOARD=${{ vars.BOARD }} \
-            -e PROJECT_DIR="/project" \
-            -v 
-      
+            -e HOST_UID=$(id -u) \
+            -e HOST_GID=$(id -g) \
+            -e PROJECT_DIR=/project \
+            -e BOARD="${{ vars.BOARD }}" \
+#            -e FREEZE_BOOT="${{ vars.FREEZE_BOOT }}" \
+#            -e FREEZE_MAIN="${{ vars.FREEZE_MAIN }}" \
+            -v "$PWD:/project" \
+            "${{ steps.docker_image.outputs.image }}"
+
       # Upload firmware artifacts
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v3
@@ -241,9 +272,20 @@ jobs:
           name: firmware
           path: dist/**
 ```
+If you want to freeze main.py:
+- Add FREEZE_MAIN with value "true" to workflow variables.
+- Uncomment **#   -e FREEZE_MAIN="${{ vars.FREEZE_MAIN }}"** i.e remove "#". \
+- Push the workflow to GitHub.
+
+If you want to freeze main.py:
+- Add FREEZE_BOOT with value "true" to workflow variables.
+- Uncomment **#   -e FREEZE_BOOT="${{ vars.FREEZE_BOOT }}"** i.e remove "#". \
+- Push the workflow to GitHub.
+
+If you want to **use environment variables** instead change **\${{ vars. }}** to **\${{ env. }}**
+
 ---
-Is is also possible to create automatic releases of the firmware by using this workflow. 
-As with the previous MICROPYTHON_VERSION must be actions variable.
+You can **create automatic releases** of the firmware by using this workflow. 
 
 You must also set:
 - VERSION, MAJOR and MINOR actions variables to generate releases like v0.1.4.x\
@@ -251,74 +293,136 @@ where VERSION is 0, MAJOR is 1, MINOR is 4 and x is the workflow run number.
 - IS_PRERELEASE - if you want to be able to have an easy way to change the prerelease flag of the release.
 
 ```yaml
-name: Build firmware (release)
+name: Build and release
+
+env:
+  # The VERSION, MAJOR & MINOR actions variables must be set before workflow push to main brach.
+  # You can set them in Settings > Secrets and variables > Actions | Variables |
+  BUILD_VERSION: ${{ vars.VERSION }}.${{ vars.MAJOR }}.${{ vars.MINOR }}.${{ github.run_number }}
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-env:
-  PORT: ${{ vars.PORT }}
-  BOARD: ${{ vars.BOARD }}
-  BUILD_VERSION: v${{ vars.VERSION }}.${{ vars.MAJOR }}.${{ vars.MINOR }}.${{ github.run_number }}
+    branches:
+      - main
 
 jobs:
-  build-release:
+  build-and-release:
     runs-on: ubuntu-latest
-    container:
-      image: rav3nh01m/micropython:${{ vars.MICROPYTHON_VERSION }}
-      options: --entrypoint ""
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Build firmware
-        run: /usr/local/bin/build_firmware.sh
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Add build version to firmware filenames
+      - name: Determine Docker image
+        id: docker_image
         run: |
-          for f in dist/*.{bin,uf2,hex}; do
-            [ -e "$f" ] || continue
-            ext="${f##*.}"
-            base="${f%.*}"
-            mv "$f" "${base}-${BUILD_VERSION}.${ext}"
-          done
+          IMAGE_BASE="rav3nh01m/micropython"
+          IMAGE="$IMAGE_BASE:${{ vars.IMAGE_TAG }}"
 
-      - name: Configure git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          echo "Checking for image: $IMAGE"
 
-      - name: Create and push tag
-        run: |
-          TAG="$BUILD_VERSION"
-
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG already exists — skipping"
+          if docker pull "$IMAGE"; then
+            echo "Using image: $IMAGE"
           else
-            git tag "$TAG"
-            git push origin "$TAG"
+            echo "Image not found. Falling back to latest."
+            IMAGE="$IMAGE_BASE:latest"
+            docker pull "$IMAGE"
           fi
 
-      - name: Create GitHub release
-        uses: actions/create-release@v1
-        with:
-          tag_name: ${{ env.BUILD_VERSION }}
-          release_name: Release ${{ env.BUILD_VERSION }}
-          prerelease: ${{ vars.IS_PRERELEASE }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
       
-      - name: Upload release assets
+      - name: Run MicroPython build container
+        run: |
+          docker run --rm \
+            -e HOST_UID=$(id -u) \
+            -e HOST_GID=$(id -g) \
+            -e PROJECT_DIR=/project \
+            -e BOARD="${{ vars.BOARD }}" \
+#            -e FREEZE_BOOT="${{ vars.FREEZE_BOOT }}" \
+#            -e FREEZE_MAIN="${{ vars.FREEZE_MAIN }}" \
+            -v "$PWD:/project" \
+            "${{ steps.docker_image.outputs.image }}"
+
+      - name: Copy firmware with version in file name
+        run: |
+          mkdir -p release
+          cp firmware.uf2 "release/firmware-v${{ env.BUILD_VERSION }}.uf2"
+
+      - name: Create firmware zip
+        working-directory: ./release
+        run: zip -j firmware-v${{env.BUILD_VERSION}}.zip firmware-v${{env.BUILD_VERSION}}.uf2
+
+      - name: Create code.zip
+        run: |
+          mkdir -p ./release/code
+      
+          if [ -d ".vscode" ]; then
+            cp -R .vscode ./release/code/
+            echo "Copied .vscode"
+          else
+            echo ".vscode directory not found — skipping"
+          fi
+
+          if [ -d "lib" ]; then
+            cp -R lib ./release/code/
+            echo "Copied lib"
+          else
+            echo "lib directory not found — skipping"
+          fi
+      # If you want you can add more directories or file to be ziped. 
+
+      # Conditional step that handles where main.py is stored - firmware or code
+      - name: Copy main.py (if not frozen)
+        if: ${{ vars.FREEZE_MAIN != 'true' }}
+        run: |
+          if [ -f "main.py" ]; then
+            cp main.py ./release/code/
+            echo "Copied main.py"
+          else
+            echo "main.py not found — skipping"
+          fi
+
+      # Conditional step that handles where boot.py is stored - firmware or code
+      - name: Copy boot.py (if not frozen)
+        if: ${{ vars.FREEZE_BOOT != 'true' }}
+        run: |
+          if [ -f "boot.py" ]; then
+            cp boot.py ./release/code/
+            echo "Copied main.py"
+          else
+            echo "boot.py not found — skipping"
+          fi
+
+      - name: Create code zip
+        working-directory: ./release/code
+        run: zip -r ../code-v${{env.BUILD_VERSION}}.zip .
+
+      # Make sure that you've set Settings > Actions > General - Workflow permissions to "Read and write permissions".
+      # Also don't forget to press the "Save" button.
+      - name: Authenticate Git
+        run: git remote set-url origin https://x-access-token:${{secrets.GITHUB_TOKEN}}@github.com/${{github.repository}}
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git tag v${{ env.BUILD_VERSION }}
+          git push origin v${{ env.BUILD_VERSION }}
+
+      # Uploads files to release
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ env.BUILD_VERSION }}
-          files: dist/*
+          tag_name: v${{ env.BUILD_VERSION }}
+          name: Release v${{ env.BUILD_VERSION }}
+          prerelease: ${{ vars.IS_PRERELEASE }}
+          files: |
+            ./release/firmware-v${{ env.BUILD_VERSION }}.zip
+            ./release/code-v${{env.BUILD_VERSION}}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
@@ -327,31 +431,32 @@ jobs:
 
 To reset the workflow run number you can change the yaml file name. \
 Use this workflow:
-- Create the variables needed (MICROPYTHON_VERSION, PORT, BOARD, VERSION, MAJOR, MINOR, IS_PRERELEASE) and set their values.
+- Create the variables needed (IMAGE_TAG, PORT, BOARD, VERSION, MAJOR, MINOR, IS_PRERELEASE) and set their values.
 - Create build-v{VERSION}.{MAJOR}.{MINOR}.x.yml as your workflow.
+- Set workflow permissions to Read/Write.
+- Press the "Save" button.
 - Push the workflow to main branch.
 
 You can reset the **run_number** for every version bump by:
-- Change the values of the VERSION, MAJOR and MINOR
-- Rename the .yml to match the version
+- Change the values of the VERSION, MAJOR and MINOR variables.
+- Rename the .yml to match the values of the variables.
 - Push to main branch
 
 With the value of **IS_PRERELEASE** you select if the build is full release or pre-release. \
 The value **MUST** be set **BEFORE** the push to the **main branch!**
 
 ### VS Code setup
-At the moment "MicroPico" extension for "VS Code" supports both rp2 and esp32 boards (with some kinks).
-
 You can use this in .vscode/settings.json
+
 ```json
 {
   "python.analysis.extraPaths": [
     "./lib",
     "./modules",
-    "micropython-stdlib-stubs-1.26.0.post3"
+    "micropython-stdlib-stubs-1.27.0"
   ],
   "python.analysis.typeshedPaths": [
-    "micropython-stdlib-stubs-1.26.0.post3"
+    "micropython-stdlib-stubs-1.27.0"
   ],
   "python.analysis.diagnosticSeverityOverrides": {
     "reportMissingModuleSource": "none"
@@ -375,7 +480,11 @@ You can use this in .vscode/settings.json
   "micropico.syncAllFileTypes": false
 }
 ```
-The micropython-stdlib-stubs-1.26.0.post3 should match the version of micropython you intent to use. 
+The micropython-stdlib-stubs-1.26.0.post3 should match the version of micropython you intent to use. \
+And in this case is installed using pip
+```cmd
+pip install micropython-stdlib-stubs==1.27.0
+```
 
 ---
 ---
