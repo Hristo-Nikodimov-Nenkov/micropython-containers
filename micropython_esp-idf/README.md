@@ -24,7 +24,7 @@ The container uses the following environment variables as input:
 
 - **BOARD**
 The target board for which the firmware is built.
-**Must be uppercase** and must **exactly match** a directory name in: **micropython/ports/<PORT>/boards**
+**Must be uppercase** and must **exactly match** a directory name in: **micropython/ports/esp32/boards**
 
 ---
 
