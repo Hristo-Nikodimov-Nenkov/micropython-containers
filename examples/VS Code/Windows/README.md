@@ -101,4 +101,4 @@ You can remove the one you don't use.
 
 ---
 
-The "/modules" directory is "micropico.pyIgnore" to prevent the case of having same module in both firmware and flash memory.
+The "/modules" directory is in "micropico.pyIgnore" to prevent the case of having same module in both firmware and flash memory.
