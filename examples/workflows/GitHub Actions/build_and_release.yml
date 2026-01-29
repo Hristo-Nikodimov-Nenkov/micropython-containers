@@ -79,7 +79,7 @@ jobs:
 
       - name: Create firmware zip
         working-directory: ./release
-        run: zip -j firmware-v${{env.BUILD_VERSION}}.zip firmware-v${{env.BUILD_VERSION}}.bin
+        run: zip -j firmware-v${{ env.BUILD_VERSION }}.zip firmware-v${{ env.BUILD_VERSION }}.bin
 
       - name: Create split firmware zip
         working-directory: ./release
@@ -139,30 +139,30 @@ jobs:
 
       - name: Create code zip
         working-directory: ./release/code
-        run: zip -r ../code-v${{env.BUILD_VERSION}}.zip .
+        run: zip -r ../code-v${{ env.BUILD_VERSION }}.zip .
 
       # Mak sure that you've set Settings > Actions > General - Workflow permissions to "Read and write permissions".
       # Also don't forget to press the "Save" button.
       - name: Authenticate Git
-        run: git remote set-url origin https://x-access-token:${{secrets.GITHUB_TOKEN}}@github.com/${{github.repository}}
+        run: git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
 
       - name: Create tag
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git tag v${{env.BUILD_VERSION}}
-          git push origin v${{env.BUILD_VERSION}}
+          git tag v${{ env.BUILD_VERSION }}
+          git push origin v${{ env.BUILD_VERSION }}
 
       # Uploads files to release
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{env.BUILD_VERSION}}
-          name: Release v${{env.BUILD_VERSION}}
-          prerelease: ${{vars.IS_PRERELEASE}}
+          tag_name: v${{ env.BUILD_VERSION }}
+          name: Release v${{ env.BUILD_VERSION }}
+          prerelease: ${{ vars.IS_PRERELEASE }}
           files: |
-            ./release/firmware-v${{env.BUILD_VERSION}}.zip
+            ./release/firmware-v${{ env.BUILD_VERSION }}.zip
             ./release/splitted_firmware-v${{ env.BUILD_VERSION }}.zip
-            ./release/code-v${{env.BUILD_VERSION}}.zip
+            ./release/code-v${{ env.BUILD_VERSION }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
