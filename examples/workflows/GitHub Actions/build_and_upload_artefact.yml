@@ -1,0 +1,152 @@
+# This workflow will build and upload as artefact custom firmware on every push to "main" branch
+# If you use name like build_x.y.z.yml where: x is the value of VERSION, y is the value of MAJOR, z is the value of MINOR
+# and you change the values of the variables before pushing updated name of the workflow
+# you have a clean and easy way to manage versions and artefacts
+# {{github.run_number}} resets when you change the file name of the workflow. 
+name: Build and upload artefact
+
+env:
+  # The VERSION, MAJOR & MINOR actions variables must be set before workflow push to main brach.
+  # You can set them in Settings > Secrets and variables > Actions | Variables |
+  BUILD_VERSION: ${{ vars.VERSION }}.${{ vars.MAJOR }}.${{ vars.MINOR }}.${{ github.run_number }}
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-upload-artefact:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # The IMAGE_TAG actions variable must be set before workflow push to main brach.
+      # If you preffer using environment variables change "vars." to "env."
+      # You can set them both in workflow "env:" section or in Settings > Secrets and variables > Actions
+      - name: Determine Docker image
+        id: docker_image
+        run: |
+          IMAGE_BASE="rav3nh01m/micropython_esp-idf"
+          IMAGE="$IMAGE_BASE:${{ vars.IMAGE_TAG }}"
+
+          echo "Checking for image: $IMAGE"
+
+          if docker pull "$IMAGE"; then
+            echo "Using image: $IMAGE"
+          else
+            echo "Image not found. Falling back to latest."
+            IMAGE="$IMAGE_BASE:latest"
+            docker pull "$IMAGE"
+          fi
+
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+      
+      # The container runs as "root" user, so HOST_UID and HOST_GID will set
+      # generated files ownership to runner user:group
+
+      # The value of PROJECT_DIR and container mount path must match i.e "/project" in this case
+      # You can set FREEZE_BOOT and FREEZE_MAIN as "environment" or "actions variables"
+      # just check if you are using the correct type i.e "env." or "vars." 
+      - name: Run MicroPython build container
+        run: |
+          HOST_UID=$(id -u)
+          HOST_GID=$(id -g)
+
+          docker run --rm \
+            -e HOST_UID="$HOST_UID" \
+            -e HOST_GID="$HOST_GID" \
+            -e PROJECT_DIR=/project \
+            -e BOARD="${{ vars.BOARD }}" \
+            -e FREEZE_BOOT="${{ vars.FREEZE_BOOT }}" \
+            -e FREEZE_MAIN="${{ vars.FREEZE_MAIN }}" \
+            -v "$PWD:/project" \
+            "${{ steps.docker_image.outputs.image }}"
+
+      - name: Copy firmware with version in file name
+        run: |
+          mkdir -p artefacts
+          for f in dist/*.bin; do
+            base=$(basename "$f" .bin)
+            cp "$f" "artefacts/${base}-v${{ env.BUILD_VERSION }}.bin"
+          done
+
+      - name: Create firmware zip
+        working-directory: ./artefacts
+        run: zip -j firmware-v env.BUILD_VERSION }}.zip firmware-v${{ env.BUILD_VERSION }}.bin
+
+      - name: Create split firmware zip
+        working-directory: ./artefacts
+        run: |
+          zip splitted_firmware-v${{ env.BUILD_VERSION }}.zip \
+            micropython*.bin \
+            bootloader*.bin \
+            partition-table*.bin
+
+      # This step is used when you need to upload files to controller file system
+       
+      # It depends on MicroPico extension for VS Code
+      # You can use any IDE you like, just adjust the files you need to upload.
+      
+      # This allows for freezing code inside the firmware and uploading the lib
+      # directory as code
+      # !!! If module exists in modules and lib you will receive un error !!! 
+      - name: Create code.zip
+        run: |
+          mkdir -p ./artefacts/code
+      
+          if [ -d ".vscode" ]; then
+            cp -R .vscode ./artefacts/code/
+            echo "Copied .vscode"
+          else
+            echo ".vscode directory not found — skipping"
+          fi
+
+          if [ -d "lib" ]; then
+            cp -R lib ./artefacts/code/
+            echo "Copied lib"
+          else
+            echo "lib directory not found — skipping"
+          fi
+
+      # Conditional step that handles where main.py is stored - firmware or code
+      - name: Copy main.py (if not frozen)
+        if: ${{ vars.FREEZE_MAIN != 'true' }}
+        run: |
+          if [ -f "main.py" ]; then
+            cp main.py ./artefacts/code/
+            echo "Copied main.py"
+          else
+            echo "main.py not found — skipping"
+          fi
+
+      # Conditional step that handles where boot.py is stored - firmware or code
+      - name: Copy boot.py (if not frozen)
+        if: ${{ vars.FREEZE_BOOT != 'true' }}
+        run: |
+          if [ -f "boot.py" ]; then
+            cp boot.py ./artefacts/code/
+            echo "Copied main.py"
+          else
+            echo "boot.py not found — skipping"
+          fi
+
+      - name: Create code zip
+        working-directory: ./artefacts/code
+        run: zip -r ../code-v${{ env.BUILD_VERSION }}.zip .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        working-directory: ./artefacts
+        with:
+          name: build-v${{ env.BUILD_VERSION }}
+          path:
+            - firmware-v${{ env.BUILD_VERSION }}.zip
+            - splitted_firmware-v${{ env.BUILD_VERSION }}.zip
+            - code-v${{ env.BUILD_VERSION }}.zip
