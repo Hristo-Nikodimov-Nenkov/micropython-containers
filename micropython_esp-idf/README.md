@@ -463,34 +463,33 @@ You can use this in .vscode/settings.json
 
 ```json
 {
-  "python.analysis.extraPaths": [
-    "./lib",
-    "./modules",
-    "micropython-esp32-esp32_generic_c3-stubs-1.27.0.post1"
-  ],
-  "python.analysis.typeshedPaths": [
-    "micropython-esp32-esp32_generic_c3-stubs-1.27.0.post1"
-  ],
-  "python.analysis.diagnosticSeverityOverrides": {
-    "reportMissingModuleSource": "none"
-  },
-  "micropico.syncFolder": "",
-  "micropico.additionalSyncFolders": [],
-  "micropico.pyIgnore": [
-    "**/.git",
-    "**/.github",
-    "**/.vscode",
-    "**/env",
-    "**/venv",
-    "**/__pycache__",
-    "**/modules"
-  ],
-  "micropico.syncFileTypes": [
-    "py",
-    "mpy",
-    "json"
-  ],
-  "micropico.syncAllFileTypes": false
+    "python.languageServer": "Pylance",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportMissingModuleSource": "none"
+    },
+    "python.analysis.extraPaths": [
+        "~/.micropico-stubs/included",
+        "./modules",
+        "./lib"
+    ],
+    "python.analysis.typeshedPaths": [
+        "~/.micropico-stubs/included"
+    ],
+    "micropico.syncFolder": "",
+    "micropico.openOnStart": true,
+    "micropico.syncAllFileTypes": true,
+    "micropico.pyIgnore":[
+        "/modules",
+        "/.micropico",
+        "/.github",
+        "/.git",
+        "/.gitignore",
+        "/.vscode",
+        "/.idea",
+        "/.DS_Store",
+        "/.stash"
+    ]
 }
 ```
 The micropython-stdlib-stubs version should match the version of micropython you intent to use. \
