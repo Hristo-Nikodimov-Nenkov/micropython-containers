@@ -494,6 +494,21 @@ You can use this in .vscode/settings.json
     ]
 }
 ```
+If you want you can change
+```json
+    "micropico.syncAllFileTypes": true,
+```
+to
+```json
+  "micropico.syncAllFileTypes": false,
+  "micropico.syncFileTypes": [
+    "py",
+    "mpy",
+    "json"
+  ]
+```
+and list the file types that should be uploaded.
+
 The micropython-stdlib-stubs version should match the version of micropython you intent to use. \
 And in this case is installed using pip
 ```cmd
