@@ -1,0 +1,15 @@
+when:
+  event:
+    - push
+    - manual
+
+steps:
+  - name: Build firmware
+    image: rav3nh01m/micropython:latest
+    environment:
+      PORT: rp2
+      BOARD: RPI_PICO_W
+      FREEZE_BOOT: false
+      FREEZE_MAIN: false
+
+  
