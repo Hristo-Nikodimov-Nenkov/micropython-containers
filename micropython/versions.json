@@ -55,8 +55,13 @@
     "built": true
   },
   {
-    "tags": "v1.28.0,v1.28,latest",
+    "tags": "v1.28.0,v1.28",
     "micropython": "v1.28.0",
     "built": true
+  },
+  {
+    "tags": "v1.29.0,v1.29,latest",
+    "micropython": "v1.29.0",
+    "built": false
   }
 ]
