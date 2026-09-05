@@ -3,66 +3,77 @@
     "micropython": "v1.24.1",
     "esp_idf": "v5.1.4",
     "tags": "v1.24.1_v5.1.4,v1.24_v5.1.4,v1.24.1_v5.1,v1.24_v5.1",
+    "publish": true,
     "built": true
   },
   {
     "micropython": "v1.24.1",
     "esp_idf": "v5.2.1",
     "tags": "v1.24.1_v5.2.1,v1.24_v5.2.1,v1.24.1_v5.2,v1.24_v5.2",
+    "publish": true,
     "built": true
   },
   {
     "micropython": "v1.25.0",
     "esp_idf": "v5.2.1",
     "tags": "v1.25.0_v5.2.1,v1.25_v5.2.1",
+    "publish": true,
     "built": true
   },
   {
     "micropython": "v1.25.0",
     "esp_idf": "v5.2.2",
     "tags": "v1.25.0_v5.2.2,v1.25_v5.2.2,v1.25.0_v5.2,v1.25_v5.2",
+    "publish": true,
     "built": true
   },
   {
     "micropython": "v1.26.1",
     "esp_idf": "v5.4.2",
     "tags": "v1.26.1_v5.4.2,v1.26_v5.4.2,v1.26.1_v5.4,v1.26_v5.4",
+    "publish": true,
     "built": true
   },
   {
     "micropython": "v1.27.0",
     "esp_idf": "v5.5.1",
     "tags": "v1.27.0_v5.5.1,v1.27_v5.5.1,v1.27.0_v5.5,v1.27_v5.5",
+    "publish": true,
     "built": true
   },
   {
     "micropython": "v1.28.0",
     "esp_idf": "v5.5.1",
     "tags": "v1.28.0_v5.5.1,v1.28_v5.5.1,v1.28.0_v5.5,v1.28_v5.5",
+    "publish": true,
     "built": true
   },
   {
     "micropython": "v1.29.0",
     "esp_idf": "v5.5.1",
     "tags": "test_v1.29.0_v5.5.1",
+    "publish": false,
     "built": false
   },
   {
     "micropython": "v1.29.0",
     "esp_idf": "v5.5.2",
     "tags": "test_v1.29.0_v5.5.2",
+    "publish": false,
     "built": false
   },
   {
     "micropython": "v1.29.0",
     "esp_idf": "v5.5.3",
     "tags": "test_v1.29.0_v5.5.3",
+    "publish": false,
     "built": false
   },
   {
     "micropython": "v1.29.0",
     "esp_idf": "v5.5.4",
     "tags": "test_v1.29.0_v5.5.4",
+    "publish": false,
     "built": false
   }
 ]
