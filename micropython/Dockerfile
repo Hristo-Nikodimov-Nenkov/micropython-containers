@@ -17,7 +17,7 @@ WORKDIR /opt
 RUN git clone -b ${MICROPYTHON_VERSION} --recursive https://github.com/micropython/micropython.git
 
 WORKDIR /opt/micropython
-RUN git submodule update --init --recursive && make -C mpy-cross -j2
+RUN git submodule update --init --recursive && make -C mpy-cross -j2 CFLAGS_EXTRA="-Wno-unterminated-string-initialization"
 
 COPY build_firmware.sh /usr/local/bin/build_firmware.sh
 RUN chmod +x /usr/local/bin/build_firmware.sh

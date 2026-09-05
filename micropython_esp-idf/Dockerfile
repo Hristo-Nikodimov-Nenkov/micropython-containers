@@ -17,7 +17,7 @@ WORKDIR /opt
 RUN git clone -b ${MICROPYTHON_VERSION} --recursive https://github.com/micropython/micropython.git
 
 WORKDIR /opt/micropython
-RUN git submodule update --init --recursive && make -C mpy-cross -j2
+RUN git submodule update --init --recursive && make -C mpy-cross -j2 CFLAGS_EXTRA="-Wno-unterminated-string-initialization"
 
 ARG ESP_IDF_VERSION
 RUN test -n "$ESP_IDF_VERSION" || (echo "ERROR: ESP_IDF_VERSION build-arg is required" && exit 2)
