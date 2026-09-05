@@ -75,7 +75,7 @@ echo "==========================================================================
 echo "📦 Building Docker image: $IMAGE"
 echo "============================================================================"
 echo " MicroPython: $MICROPYTHON_VERSION"
-echo " Publish:      $PUBLISH"
+echo " Publish: $PUBLISH"
 echo "----------------------------------------------------------------------------"
 
 docker build --rm \
