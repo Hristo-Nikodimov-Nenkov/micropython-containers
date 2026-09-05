@@ -53,27 +53,27 @@
     "esp_idf": "v5.5.1",
     "tags": "test_v1.29.0_v5.5.1",
     "publish": false,
-    "built": false
+    "built": true
   },
   {
     "micropython": "v1.29.0",
     "esp_idf": "v5.5.2",
     "tags": "test_v1.29.0_v5.5.2",
     "publish": false,
-    "built": false
+    "built": true
   },
   {
     "micropython": "v1.29.0",
     "esp_idf": "v5.5.3",
     "tags": "test_v1.29.0_v5.5.3",
     "publish": false,
-    "built": false
+    "built": true
   },
   {
     "micropython": "v1.29.0",
     "esp_idf": "v5.5.4",
     "tags": "test_v1.29.0_v5.5.4",
     "publish": false,
-    "built": false
+    "built": true
   }
 ]
