@@ -43,8 +43,26 @@
   },
   {
     "micropython": "v1.29.0",
+    "esp_idf": "v5.5.1",
+    "tags": "test_v1.29.0_v5.5.1",
+    "built": false
+  },
+  {
+    "micropython": "v1.29.0",
     "esp_idf": "v5.5.2",
-    "tags": "v1.29.0_v5.5.2,v1.29_v5.5.2,v1.29.0_v5.5,v1.29_v5.5,latest",
+    "tags": "test_v1.29.0_v5.5.2",
+    "built": false
+  },
+  {
+    "micropython": "v1.29.0",
+    "esp_idf": "v5.5.3",
+    "tags": "test_v1.29.0_v5.5.3",
+    "built": false
+  },
+  {
+    "micropython": "v1.29.0",
+    "esp_idf": "v5.5.4",
+    "tags": "test_v1.29.0_v5.5.4",
     "built": false
   }
 ]
