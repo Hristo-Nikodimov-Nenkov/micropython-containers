@@ -9,6 +9,7 @@ shift
 DIR_NAME=$(basename "$DIRECTORY")
 
 BUILT="false"
+PUBLISH="false"
 TAGS=""
 MICROPYTHON_VERSION=""
 ESP_IDF_VERSION=""
@@ -33,6 +34,10 @@ while [ $# -gt 0 ]; do
       ;;
     --built)
       BUILT="$2"
+      shift 2
+      ;;
+    --publish)
+      PUBLISH="$2"
       shift 2
       ;;
     *)
@@ -86,7 +91,9 @@ echo "==========================================================================
 echo " Base image: $DOCKERHUB_USERNAME/micropython:$MICROPYTHON_VERSION"
 echo " MicroPython: $MICROPYTHON_VERSION"
 echo " ESP-IDF: $ESP_IDF_VERSION"
+echo " Publish: $PUBLISH"
 echo "----------------------------------------------------------------------------"
+
 docker build --rm \
   --build-arg MICROPYTHON_VERSION="$MICROPYTHON_VERSION" \
   --build-arg ESP_IDF_VERSION="$ESP_IDF_VERSION" \
@@ -96,17 +103,28 @@ docker build --rm \
 # -----------------------------
 # Tag & push ALL tags
 # -----------------------------
-echo "$TAGS" | tr ',' '\n' | while read tag; do
-  tag=$(echo "$tag" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-  IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$tag"
+if [ "$PUBLISH" = "true" ]; then
+  echo "🚀 Publishing Docker images to Docker Hub..."
 
-  if [ "$tag" != "$FIRST_TAG" ]; then
-    docker tag "$BASE_IMAGE" "$IMAGE"
-  fi
+  echo "$TAGS" | tr ',' '\n' | while read tag; do
+    tag=$(echo "$tag" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
-  echo "🚀 Pushing Docker image: $IMAGE"
-  docker push "$IMAGE"
-done
+    if [ -z "$tag" ]; then
+      continue
+    fi
+
+    IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$tag"
+
+    if [ "$tag" != "$FIRST_TAG" ]; then
+      docker tag "$BASE_IMAGE" "$IMAGE"
+    fi
+
+    echo "🚀 Pushing Docker image: $IMAGE"
+    docker push "$IMAGE"
+  done
+else
+  echo "Publish disabled; image will not be pushed to Docker Hub."
+fi
 
 # -----------------------------
 # Update versions.json
@@ -118,4 +136,4 @@ jq --arg mp "$MICROPYTHON_VERSION" '
   map(if .micropython == $mp then .built = true else . end)
 ' "$VERSION_JSON" > "$TMP_JSON" && mv "$TMP_JSON" "$VERSION_JSON"
 
-echo "✔ Completed: $DIR_NAME (micropython=$MICROPYTHON_VERSION, esp-idf=$ESP_IDF_VERSION, built=$BUILT)"
+echo "✔ Completed: $DIR_NAME (micropython=$MICROPYTHON_VERSION, esp-idf=$ESP_IDF_VERSION, built=$BUILT, publish=$PUBLISH)"

@@ -9,6 +9,7 @@ shift
 DIR_NAME=$(basename "$DIRECTORY")
 
 BUILT=false
+PUBLISH=false
 TAGS=""
 MICROPYTHON_VERSION=""
 
@@ -27,6 +28,10 @@ while [ $# -gt 0 ]; do
       ;;
     --built)
       BUILT="$2"
+      shift 2
+      ;;
+    --publish)
+      PUBLISH="$2"
       shift 2
       ;;
     *)
@@ -70,7 +75,9 @@ echo "==========================================================================
 echo "📦 Building Docker image: $IMAGE"
 echo "============================================================================"
 echo " MicroPython: $MICROPYTHON_VERSION"
+echo " Publish:      $PUBLISH"
 echo "----------------------------------------------------------------------------"
+
 docker build --rm \
   --build-arg MICROPYTHON_VERSION="$MICROPYTHON_VERSION" \
   -t "$IMAGE" \
@@ -79,17 +86,28 @@ docker build --rm \
 # -----------------------------
 # Tag & push ALL tags
 # -----------------------------
-echo "$TAGS" | tr ',' '\n' | while read tag; do
-  tag=$(trim "$tag")
-  FULL_IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$tag"
+if [ "$PUBLISH" = "true" ]; then
+  echo "Publishing image to Docker Hub..."
 
-  if [ "$tag" != "$FIRST_TAG" ]; then
-    docker tag "$IMAGE" "$FULL_IMAGE"
-  fi
+  echo "$TAGS" | tr ',' '\n' | while read tag; do
+    tag=$(trim "$tag")
 
-  echo "Pushing Docker image: $FULL_IMAGE"
-  docker push "$FULL_IMAGE"
-done
+    if [ -z "$tag" ]; then
+      continue
+    fi
+
+    FULL_IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$tag"
+
+    if [ "$tag" != "$FIRST_TAG" ]; then
+      docker tag "$IMAGE" "$FULL_IMAGE"
+    fi
+
+    echo "Pushing Docker image: $FULL_IMAGE"
+    docker push "$FULL_IMAGE"
+  done
+else
+  echo "Publish disabled; image will not be pushed to Docker Hub."
+fi
 
 # -----------------------------
 # Update versions.json
@@ -101,4 +119,4 @@ jq --arg mp "$MICROPYTHON_VERSION" '
 ' "$VERSION_JSON" > "$VERSION_JSON.tmp" &&
 mv "$VERSION_JSON.tmp" "$VERSION_JSON"
 
-echo "Build and push completed for $DIR_NAME ($MICROPYTHON_VERSION)"
+echo "Build completed for $DIR_NAME ($MICROPYTHON_VERSION)"
