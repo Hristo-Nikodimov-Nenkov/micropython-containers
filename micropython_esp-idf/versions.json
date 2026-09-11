@@ -53,6 +53,6 @@
     "esp_idf": "v5.5.2",
     "tags": "v1.29.0_v5.5.2,v1.29_v5.5.2,v1.29.0_v5.5,v1.29_v5.5,latest",
     "publish": true,
-    "built": false
+    "built": true
   }
 ]
