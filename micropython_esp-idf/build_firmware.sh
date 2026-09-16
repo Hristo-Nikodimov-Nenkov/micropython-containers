@@ -107,8 +107,29 @@ echo "--------------------------------------------------------------------------
 
 MANIFEST="$PROJECT_DIR/manifest.py"
 MODULES_DIR="$PROJECT_DIR/modules"
+APPEND_SDKCONFIG="$PROJECT_DIR/sdkconfig.board"
 
 cd "$PROJECT_DIR"
+
+# -----------------------------------------------------------------------
+# Optional project-supplied sdkconfig overrides.
+# -----------------------------------------------------------------------
+# Boards list every sdkconfig fragment they want explicitly in their own
+# mpconfigboard.cmake (there's no upstream auto-discovery of a
+# conventionally-named file) - e.g. ESP32_GENERIC_C3 pulls in
+# boards/sdkconfig.ble unconditionally, which reserves a fixed chunk of
+# internal RAM for the NimBLE stack even when the firmware never uses
+# Bluetooth. Appending our own fragment to SDKCONFIG_DEFAULTS the same way
+# the board appends its own (sdkconfig.csi) lets a project override any of
+# those defaults - later entries win for the same key - without patching
+# or forking MicroPython.
+if [[ -f "$APPEND_SDKCONFIG" ]]; then
+    echo " Applying project sdkconfig overrides from sdkconfig.board"
+    echo "--------------------------------------------------------------------------------"
+    cp -v "$APPEND_SDKCONFIG" "$BOARD_DIR/sdkconfig.board"
+    echo 'list(APPEND SDKCONFIG_DEFAULTS ${CMAKE_CURRENT_LIST_DIR}/sdkconfig.board)' >> "$BOARD_DIR/mpconfigboard.cmake"
+    echo "--------------------------------------------------------------------------------"
+fi
 
 if [[ -f "$MANIFEST" ]]; then
     echo " Using existing manifest.py"

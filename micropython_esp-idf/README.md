@@ -141,6 +141,16 @@ After a **successful** build the **firmware (.bin, .hex, or .uf2)** will appear 
 
 - **/manifest.py** – If this **file exists** in your project, it will be **used** as **manifest** when building the firmware. 
 
+- **/sdkconfig.board** – If this **file exists** in your project, it is **copied** into the **board directory** and **appended** to **SDKCONFIG_DEFAULTS** in **mpconfigboard.cmake**, **after** the board's own defaults. \
+Boards list every sdkconfig fragment they use **explicitly** in their own **mpconfigboard.cmake** (there is **no** upstream **auto-discovery** of a conventionally-named file), so this lets a **project override** any board default - **later entries win** for the **same key** - **without** patching or **forking MicroPython**. \
+For example, **every** stock **ESP32-C3** board pulls in **boards/sdkconfig.ble** unconditionally, reserving RAM for the **NimBLE** stack whether or not the firmware **ever uses Bluetooth**. A project that has **no use** for it can **free that RAM** with:
+```
+CONFIG_BT_ENABLED=n
+CONFIG_BT_NIMBLE_ENABLED=n
+CONFIG_BT_CONTROLLER_ENABLED=n
+```
+**Note:** changing this file changes the **sdkconfig**, which **invalidates** the **existing build cache** for that board - expect a **full rebuild**, not an incremental one, the **next** time it changes.
+
 ### Project root not in the repo root
 If your **code** is **not** in the **root directory** of the repo then you should **mount** the directory \
 **containing** the **main.py** file and/or **modules** directories. For example, if they are in **/src** use:
