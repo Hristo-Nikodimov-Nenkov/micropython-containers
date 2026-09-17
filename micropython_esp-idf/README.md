@@ -142,13 +142,21 @@ After a **successful** build the **firmware (.bin, .hex, or .uf2)** will appear 
 - **/manifest.py** – If this **file exists** in your project, it will be **used** as **manifest** when building the firmware. 
 
 - **/sdkconfig.board** – If this **file exists** in your project, it is **copied** into the **board directory** and **appended** to **SDKCONFIG_DEFAULTS** in **mpconfigboard.cmake**, **after** the board's own defaults. \
-Boards list every sdkconfig fragment they use **explicitly** in their own **mpconfigboard.cmake** (there is **no** upstream **auto-discovery** of a conventionally-named file), so this lets a **project override** any board default - **later entries win** for the **same key** - **without** patching or **forking MicroPython**. \
-For example, **every** stock **ESP32-C3** board pulls in **boards/sdkconfig.ble** unconditionally, reserving RAM for the **NimBLE** stack whether or not the firmware **ever uses Bluetooth**. A project that has **no use** for it can **free that RAM** with:
+Boards list every sdkconfig fragment they use **explicitly** in their own **mpconfigboard.cmake** (there is **no** upstream **auto-discovery** of a conventionally-named file), so this lets a **project override** any **pure sdkconfig** default - **later entries win** for the **same key** - **without** patching or **forking MicroPython**.
+
+Useful for things like:
 ```
-CONFIG_BT_ENABLED=n
-CONFIG_BT_NIMBLE_ENABLED=n
-CONFIG_BT_CONTROLLER_ENABLED=n
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=160
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=4096
+CONFIG_MBEDTLS_SSL_MAX_CONTENT_LEN=4096
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=6
+CONFIG_LOG_DEFAULT_LEVEL_WARN=y
+CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
 ```
+
+**This does NOT work to disable Bluetooth.** Every stock ESP32-C3 board pulls in **boards/sdkconfig.ble** unconditionally, reserving RAM for the NimBLE stack whether or not the firmware ever uses Bluetooth - but setting `CONFIG_BT_ENABLED=n` (and friends) here only removes the **ESP-IDF** component. MicroPython's ESP32 port hardcodes `MICROPY_PY_BLUETOOTH` to `(1)` for every board **independent of sdkconfig**, so it still compiles its NimBLE bindings - which then fail to find the NimBLE headers ESP-IDF no longer built, breaking the build. \
+Use [rav3nh01m/micropython_esp-idf_no-bt](https://hub.docker.com/r/rav3nh01m/micropython_esp-idf_no-bt) instead if you want to disable Bluetooth and reclaim that RAM - it compiles MicroPython itself without NimBLE support, and this same `sdkconfig.board` override (with `CONFIG_BT_ENABLED=n`) works there to also drop the ESP-IDF side.
+
 **Note:** changing this file changes the **sdkconfig**, which **invalidates** the **existing build cache** for that board - expect a **full rebuild**, not an incremental one, the **next** time it changes.
 
 ### Project root not in the repo root
