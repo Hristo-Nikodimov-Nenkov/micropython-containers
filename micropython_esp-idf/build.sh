@@ -1,9 +1,9 @@
 #!/bin/sh
 set -e
 
-# -----------------------------
+# =============================
 # Determine service directory
-# -----------------------------
+# =============================
 DIRECTORY="$1"
 shift
 DIR_NAME=$(basename "$DIRECTORY")
@@ -14,9 +14,9 @@ TAGS=""
 MICROPYTHON_VERSION=""
 ESP_IDF_VERSION=""
 
-# -----------------------------
+# =============================
 # Parse flags from CLI
-# -----------------------------
+# =============================
 while [ $# -gt 0 ]; do
   key="$1"
   case "$key" in
@@ -46,9 +46,9 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# -----------------------------
+# =============================
 # Validate required fields
-# -----------------------------
+# =============================
 if [ -z "$MICROPYTHON_VERSION" ]; then
   echo "Missing required property in versions.json (micropython)."
   exit 2
@@ -64,15 +64,14 @@ if [ -z "$TAGS" ]; then
   exit 4
 fi
 
-# -----------------------------
+# =============================
 # Split & trim tags (POSIX sh)
-# -----------------------------
+# =============================
 OLD_IFS="$IFS"
 IFS=','
 set -- $TAGS
 IFS="$OLD_IFS"
 
-# Trim first tag
 FIRST_TAG=$(echo "$1" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
 BASE_IMAGE="$DOCKERHUB_USERNAME/$DIR_NAME:$FIRST_TAG"
@@ -82,9 +81,9 @@ if [ -z "$FIRST_TAG" ]; then
   exit 5
 fi
 
-# -----------------------------
+# =============================
 # Build image ONCE (first tag)
-# -----------------------------
+# =============================
 echo "============================================================================"
 echo "📦 Building Docker image: $BASE_IMAGE"
 echo "============================================================================"
@@ -100,9 +99,9 @@ docker build --rm \
   -t "$BASE_IMAGE" \
   "$DIRECTORY"
 
-# -----------------------------
+# =============================
 # Tag & push ALL tags
-# -----------------------------
+# =============================
 if [ "$PUBLISH" = "true" ]; then
   echo "🚀 Publishing Docker images to Docker Hub..."
 
@@ -126,9 +125,9 @@ else
   echo "Publish disabled; image will not be pushed to Docker Hub."
 fi
 
-# -----------------------------
+# =============================
 # Update versions.json
-# -----------------------------
+# =============================
 VERSION_JSON="$DIRECTORY/versions.json"
 TMP_JSON="$VERSION_JSON.tmp"
 
