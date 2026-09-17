@@ -1,11 +1,11 @@
 {
   "micropython": {
-    "order": 1
+    "order": 0
   },
   "micropython_esp-idf": {
     "order": 10
   },
   "micropython_esp-idf_no-bt": {
-    "order": 20
+    "order": -10
   }
 }

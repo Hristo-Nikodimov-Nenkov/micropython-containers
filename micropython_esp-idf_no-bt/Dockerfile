@@ -18,20 +18,6 @@ RUN git clone -b ${MICROPYTHON_VERSION} --recursive https://github.com/micropyth
 
 WORKDIR /opt/micropython
 
-# Disable Bluetooth (NimBLE) at the source level for the whole esp32 port.
-#
-# ports/esp32/mpconfigport.h guards MICROPY_PY_BLUETOOTH with #ifndef, so it
-# always defaults to (1) unless something upstream of it in the same
-# translation unit already defined it - no board's mpconfigboard.h does that,
-# and the ESP32 port's Makefile has no CFLAGS_EXTRA-style hook to inject a
-# command-line override before that header is processed. Flipping the
-# default here is the only reliable way to keep MicroPython from compiling
-# its NimBLE glue (extmod/nimble/modbluetooth_nimble.c,
-# ports/esp32/mpnimbleport.c), which otherwise fails as soon as a project
-# also sets CONFIG_BT_ENABLED=n in sdkconfig (via its own sdkconfig.board) to
-# reclaim the RAM boards/sdkconfig.ble reserves for the NimBLE stack - the
-# ESP-IDF bt component and its headers disappear, but MicroPython still
-# tries to build against them.
 RUN grep -qE '^#define MICROPY_PY_BLUETOOTH[[:space:]]*\(1\)$' ports/esp32/mpconfigport.h \
    && sed -i -E 's/^#define MICROPY_PY_BLUETOOTH[[:space:]]*\(1\)$/#define MICROPY_PY_BLUETOOTH                (0)/' ports/esp32/mpconfigport.h \
    && grep -qE '^#define MICROPY_PY_BLUETOOTH[[:space:]]*\(0\)$' ports/esp32/mpconfigport.h
