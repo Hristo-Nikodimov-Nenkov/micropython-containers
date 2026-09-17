@@ -6,6 +6,6 @@
     "order": 10
   },
   "micropython_esp-idf_no-bt": {
-    "order": 9
+    "order": 20
   }
 }
