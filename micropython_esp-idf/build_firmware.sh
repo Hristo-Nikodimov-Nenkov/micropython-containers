@@ -117,19 +117,10 @@ cd "$PROJECT_DIR"
 # Boards list every sdkconfig fragment they want explicitly in their own
 # mpconfigboard.cmake (there's no upstream auto-discovery of a
 # conventionally-named file). Appending our own fragment to
-# SDKCONFIG_DEFAULTS the same way the board appends its own
-# (sdkconfig.csi) lets a project override any pure sdkconfig default -
-# later entries win for the same key - without patching or forking
-# MicroPython. Useful for things like CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ,
-# CONFIG_ESP_MAIN_TASK_STACK_SIZE, CONFIG_MBEDTLS_SSL_MAX_CONTENT_LEN, or
-# CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM.
-#
-# This does NOT work to disable Bluetooth: ports/esp32/mpconfigport.h
-# hardcodes MICROPY_PY_BLUETOOTH to (1) regardless of sdkconfig, so
-# MicroPython still compiles its NimBLE bindings even with
-# CONFIG_BT_ENABLED=n here - which then fail to find the NimBLE headers
-# ESP-IDF no longer builds. Use the micropython_esp-idf_no-bt image for
-# that instead.
+# SDKCONFIG_DEFAULTS the same way the board appends its own (sdkconfig.csi)
+# lets a project override any sdkconfig default - later entries win for the
+# same key - without patching or forking MicroPython. See README.md for
+# supported use cases and a caveat about Bluetooth.
 if [[ -f "$APPEND_SDKCONFIG" ]]; then
     echo " Applying project sdkconfig overrides from sdkconfig.board"
     echo "--------------------------------------------------------------------------------"
