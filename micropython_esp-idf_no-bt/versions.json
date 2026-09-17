@@ -1,0 +1,9 @@
+[
+  {
+    "micropython": "v1.29.0",
+    "esp_idf": "v5.5.2",
+    "tags": "v1.29.0_v5.5.2",
+    "publish": true,
+    "built": false
+  }
+]

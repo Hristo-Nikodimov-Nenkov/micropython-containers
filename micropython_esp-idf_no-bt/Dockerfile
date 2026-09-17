@@ -1,0 +1,53 @@
+FROM ubuntu:26.04
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+   git unzip wget curl rsync ca-certificates pkg-config \
+   python3 python3-pip python3-setuptools python3-venv python3-dev \
+   build-essential make cmake ninja-build \
+   flex bison gdb-multiarch \
+   libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev libc6-dev libusb-1.0-0-dev \
+   gcc-arm-none-eabi binutils-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib \
+   && rm -rf /var/lib/apt/lists/*
+
+ARG MICROPYTHON_VERSION
+RUN test -n "$MICROPYTHON_VERSION" || (echo "ERROR: MICROPYTHON_VERSION build-arg is required" && exit 1)
+
+WORKDIR /opt
+RUN git clone -b ${MICROPYTHON_VERSION} --recursive https://github.com/micropython/micropython.git
+
+WORKDIR /opt/micropython
+
+# Disable Bluetooth (NimBLE) at the source level for the whole esp32 port.
+#
+# ports/esp32/mpconfigport.h guards MICROPY_PY_BLUETOOTH with #ifndef, so it
+# always defaults to (1) unless something upstream of it in the same
+# translation unit already defined it - no board's mpconfigboard.h does that,
+# and the ESP32 port's Makefile has no CFLAGS_EXTRA-style hook to inject a
+# command-line override before that header is processed. Flipping the
+# default here is the only reliable way to keep MicroPython from compiling
+# its NimBLE glue (extmod/nimble/modbluetooth_nimble.c,
+# ports/esp32/mpnimbleport.c), which otherwise fails as soon as a project
+# also sets CONFIG_BT_ENABLED=n in sdkconfig (via its own sdkconfig.board) to
+# reclaim the RAM boards/sdkconfig.ble reserves for the NimBLE stack - the
+# ESP-IDF bt component and its headers disappear, but MicroPython still
+# tries to build against them.
+RUN grep -qE '^#define MICROPY_PY_BLUETOOTH[[:space:]]*\(1\)$' ports/esp32/mpconfigport.h \
+   && sed -i -E 's/^#define MICROPY_PY_BLUETOOTH[[:space:]]*\(1\)$/#define MICROPY_PY_BLUETOOTH                (0)/' ports/esp32/mpconfigport.h \
+   && grep -qE '^#define MICROPY_PY_BLUETOOTH[[:space:]]*\(0\)$' ports/esp32/mpconfigport.h
+
+RUN git submodule update --init --recursive && make -C mpy-cross -j2 CFLAGS_EXTRA="-Wno-unterminated-string-initialization"
+
+ARG ESP_IDF_VERSION
+RUN test -n "$ESP_IDF_VERSION" || (echo "ERROR: ESP_IDF_VERSION build-arg is required" && exit 2)
+
+WORKDIR /opt
+RUN git clone -b ${ESP_IDF_VERSION} --recursive https://github.com/espressif/esp-idf.git
+
+WORKDIR /opt/esp-idf
+RUN git submodule update --init --recursive && chmod +x install.sh export.sh && ./install.sh all
+
+COPY build_firmware.sh /usr/local/bin/build_firmware.sh
+RUN chmod +x /usr/local/bin/build_firmware.sh
+
+ENTRYPOINT ["/usr/local/bin/build_firmware.sh"]
