@@ -157,6 +157,8 @@ CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
 **This does NOT work to disable Bluetooth.** Every stock ESP32-C3 board pulls in **boards/sdkconfig.ble** unconditionally, reserving RAM for the NimBLE stack whether or not the firmware ever uses Bluetooth - but setting `CONFIG_BT_ENABLED=n` (and friends) here only removes the **ESP-IDF** component. MicroPython's ESP32 port hardcodes `MICROPY_PY_BLUETOOTH` to `(1)` for every board **independent of sdkconfig**, so it still compiles its NimBLE bindings - which then fail to find the NimBLE headers ESP-IDF no longer built, breaking the build. \
 Use [rav3nh01m/micropython_esp-idf_no-bt](https://hub.docker.com/r/rav3nh01m/micropython_esp-idf_no-bt) instead if you want to disable Bluetooth and reclaim that RAM - it compiles MicroPython itself without NimBLE support, and this same `sdkconfig.board` override (with `CONFIG_BT_ENABLED=n`) works there to also drop the ESP-IDF side.
 
+**If HTTPS requests fail** (e.g. TLS/mbedtls allocation errors during the handshake) and your project **doesn't need Bluetooth**, the RAM NimBLE reserves is a common culprit on memory-constrained boards like the ESP32-C3 - there's simply not enough heap left for the TLS buffers. Switching to [rav3nh01m/micropython_esp-idf_no-bt](https://hub.docker.com/r/rav3nh01m/micropython_esp-idf_no-bt) frees that RAM and is usually the better option in that case.
+
 **Note:** changing this file changes the **sdkconfig**, which **invalidates** the **existing build cache** for that board - expect a **full rebuild**, not an incremental one, the **next** time it changes.
 
 ### Project root not in the repo root
