@@ -39,7 +39,7 @@
     "esp_idf": "v5.5.1",
     "tags": "v1.27.0_v5.5.1,v1.27_v5.5.1,v1.27.0_v5.5,v1.27_v5.5",
     "publish": true,
-    "built": false
+    "built": true
   },
   {
     "micropython": "v1.28.0",
