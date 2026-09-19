@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ARG MICROPYTHON_VERSION
 RUN test -n "$MICROPYTHON_VERSION" || (echo "ERROR: MICROPYTHON_VERSION build-arg is required" && exit 1)
+ENV MICROPYTHON_VERSION=${MICROPYTHON_VERSION}
 
 WORKDIR /opt
 RUN git clone -b ${MICROPYTHON_VERSION} --recursive https://github.com/micropython/micropython.git

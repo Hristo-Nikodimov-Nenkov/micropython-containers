@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ARG MICROPYTHON_VERSION
 RUN test -n "$MICROPYTHON_VERSION" || (echo "ERROR: MICROPYTHON_VERSION build-arg is required" && exit 1)
+ENV MICROPYTHON_VERSION=${MICROPYTHON_VERSION}
 
 WORKDIR /opt
 RUN git clone -b ${MICROPYTHON_VERSION} --recursive https://github.com/micropython/micropython.git
@@ -26,6 +27,7 @@ RUN git submodule update --init --recursive && make -C mpy-cross -j2 CFLAGS_EXTR
 
 ARG ESP_IDF_VERSION
 RUN test -n "$ESP_IDF_VERSION" || (echo "ERROR: ESP_IDF_VERSION build-arg is required" && exit 2)
+ENV ESP_IDF_VERSION=${ESP_IDF_VERSION}
 
 WORKDIR /opt
 RUN git clone -b ${ESP_IDF_VERSION} --recursive https://github.com/espressif/esp-idf.git

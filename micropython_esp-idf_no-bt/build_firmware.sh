@@ -187,6 +187,40 @@ else
         if [[ "$freeze_boot" == true ]]; then
             cp -v "$PROJECT_DIR/boot.py" "$BOARD_DIR"
         fi
+
+        # ----------------------------------------------------------------------
+        # Append build info to the frozen copy of modules/firmware.py (the
+        # project's own file, if any, is left untouched).
+        # ----------------------------------------------------------------------
+        if [[ "$modules_nonempty" == true ]]; then
+            frozen_boot_py=False
+            if [[ -f "$PROJECT_DIR/boot.py" && "$freeze_boot" == true ]]; then
+                frozen_boot_py=True
+            fi
+
+            frozen_main_py=False
+            if [[ -f "$PROJECT_DIR/main.py" && "$freeze_main" == true ]]; then
+                frozen_main_py=True
+            fi
+
+            FIRMWARE_INFO="$BOARD_DIR/modules/firmware.py"
+
+            if [[ -s "$FIRMWARE_INFO" && -n "$(tail -c1 "$FIRMWARE_INFO")" ]]; then
+                echo >> "$FIRMWARE_INFO"
+            fi
+
+            {
+                echo "MICROPYTHON_VERSION = \"${MICROPYTHON_VERSION:-unknown}\""
+                echo "PORT = \"esp32\""
+                echo "BOARD = \"$BOARD\""
+                echo "ESP_IDF_VERSION = \"${ESP_IDF_VERSION:-unknown}\""
+                echo "FROZEN_BOOT_PY = $frozen_boot_py"
+                echo "FROZEN_MAIN_PY = $frozen_main_py"
+            } >> "$FIRMWARE_INFO"
+
+            echo " Build info appended to $FIRMWARE_INFO:"
+            cat "$FIRMWARE_INFO"
+        fi
         echo "========================================================================================="
     else
         echo " No modules to freeze, FREEZE_MAIN and FREEZE_BOOT not set to 'true'"
