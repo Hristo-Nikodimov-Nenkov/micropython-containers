@@ -52,6 +52,24 @@ If you have module like /modules/test_module you should use **"import test_modul
 
 ---
 
+### Build information (automatically set)
+
+- **MICROPYTHON_VERSION** \
+Already **baked into the image** as an environment variable (set from the same build-arg used to **build** it), so it always reflects the **exact** MicroPython version that image contains - even when you pulled it by a shorthand tag (e.g. **v1.29**) or **latest**. \
+You **don't need to set it yourself**; only pass **-e MICROPYTHON_VERSION=...** if you deliberately want to **override** the value written below (this makes the reported version **less accurate**, not more).
+
+When **/modules** is frozen (see above), the container **appends build info** to the frozen copy of **modules/firmware.py** - the project's own file (if any) is **left untouched**, only the copy that gets built into the firmware gains these lines:
+```python
+MICROPYTHON_VERSION = "v1.29.0"
+PORT = "rp2"
+BOARD = "RPI_PICO2_W"
+FROZEN_BOOT_PY = False
+FROZEN_MAIN_PY = True
+```
+This lets your firmware code read its own build info (e.g. to expose it over an API) **without hardcoding it** anywhere in your project.
+
+---
+
 ### Project directory
 
 - **PROJECT_DIR** - Path to the **project directory**.

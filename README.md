@@ -3,9 +3,10 @@ Docker containers based on Ubuntu 24.04 for building custom MicroPython firmware
 
 ## Structure
 Each directory is linked to DockerHub repo with the same name. \
-For the moment there are 2 sets of containers:
+For the moment there are 3 sets of containers:
 - micropython - For most boards ( tested on RPI based boards like PICO, PICO_W, PICO2_W)
 - micropython_esp-idf - For ESP32 based boards ( tested on ESP32_C3 and ESP32_WROOM_32U)
+- micropython_esp-idf_no-bt - Same as micropython_esp-idf, but with Bluetooth (NimBLE) compiled out of MicroPython itself to reclaim RAM on memory-constrained boards like the ESP32-C3
 
 ### Dockerfile
 Each directory has the Dockerfile used to create the container.

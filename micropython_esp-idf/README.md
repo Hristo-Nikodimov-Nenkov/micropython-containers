@@ -26,6 +26,10 @@ The container uses the following environment variables as input:
 The target board for which the firmware is built.
 **Must be uppercase** and must **exactly match** a directory name in: **micropython/ports/esp32/boards**
 
+- **BOARD_VARIANT**
+Some boards support variants.
+If you **want to use** this variable, check the **available variants** for that specific board.
+
 ---
 
 ### Freezing files into firmware
@@ -42,6 +46,25 @@ When **/modules** directory exists it's **content** is **frozen** relative to it
 If you have module like /modules/test_module you should use **"import test_module"** or **"from text_module import ..."**
 
 **When module with the same name exists in firmware and flash you'll receive an error.**
+
+---
+
+### Build information (automatically set)
+
+- **MICROPYTHON_VERSION** and **ESP_IDF_VERSION** \
+Already **baked into the image** as environment variables (set from the same build-args used to **build** it), so they always reflect the **exact** MicroPython and ESP-IDF versions that image contains - even when you pulled it by a shorthand tag (e.g. **v1.29_v5.5**) or **latest**. \
+You **don't need to set them yourself**; only pass **-e MICROPYTHON_VERSION=...** / **-e ESP_IDF_VERSION=...** if you deliberately want to **override** the value written below (this makes the reported version **less accurate**, not more).
+
+When **/modules** is frozen (see above), the container **appends build info** to the frozen copy of **modules/firmware.py** - the project's own file (if any) is **left untouched**, only the copy that gets built into the firmware gains these lines:
+```python
+MICROPYTHON_VERSION = "v1.29.0"
+PORT = "esp32"
+BOARD = "ESP32_GENERIC_C3"
+ESP_IDF_VERSION = "v5.5.2"
+FROZEN_BOOT_PY = False
+FROZEN_MAIN_PY = True
+```
+This lets your firmware code read its own build info (e.g. to expose it over an API) **without hardcoding it** anywhere in your project.
 
 ---
 
@@ -135,7 +158,7 @@ To **freeze it in the firmware**, use **FREEZE_MAIN="true"**.
 To **freeze it in the firmware**, use **FREEZE_BOOT="true"**.
 
 - **/dist** – The output directory.
-After a **successful** build the **firmware (.bin, .hex, or .uf2)** will appear here.
+After a **successful** build the **firmware (.bin files - bootloader, partition-table and the app image)** will appear here.
 
 - **/build_firmware.sh** – If this **file exists** in your project, it will **override** the **integrated script** inside the container.
 
@@ -232,7 +255,7 @@ You can use GitHub Actions, Woodpecker, GitLab CI or any other CI/CD system to s
 
 ---
 
-**Before pushing this workflow to GitHub you must create IMAGE_TAG, PORT and BOARD actions variables (not Environment).** \
+**Before pushing this workflow to GitHub you must create IMAGE_TAG and BOARD actions variables (not Environment).** \
 If you want to **use environment variables** you should change **\${{ vars. }}** to **\${{ env. }}**
 ```yaml
 name: Build firmware (upload artifact)
@@ -378,7 +401,7 @@ jobs:
 
       - name: Create firmware zip
         working-directory: ./release
-        run: zip -j firmware-v${{env.BUILD_VERSION}}.zip firmware-v${{env.BUILD_VERSION}}.uf2
+        run: zip -j firmware-v${{env.BUILD_VERSION}}.zip micropython-v${{env.BUILD_VERSION}}.bin
 
       - name: Create split firmware zip
         working-directory: ./release
@@ -464,7 +487,7 @@ jobs:
 
 To reset the workflow run number you can change the yaml file name. \
 Use this workflow:
-- Create the variables needed (IMAGE_TAG, PORT, BOARD, VERSION, MAJOR, MINOR, IS_PRERELEASE) and set their values.
+- Create the variables needed (IMAGE_TAG, BOARD, VERSION, MAJOR, MINOR, IS_PRERELEASE) and set their values.
 - Create build-v{VERSION}.{MAJOR}.{MINOR}.x.yml as your workflow.
 - Set workflow permissions to Read/Write.
 - Press the "Save" button.
