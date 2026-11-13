@@ -11,18 +11,18 @@ You can install Python in one of the following ways:
 ---
 - Stand-alone installation [here](https://www.python.org/downloads/windows/)
 
-Since the containers use Ubuntu 24.04 the recomended version of Python is 3.12 or later.
+Python on your PC is only used for IntelliSense (stubs) and tooling - the firmware is built inside the container. Python 3.12 or later is recommended.
 
 ### USB JTAG
 In some cases your system might not recognize the board as valid USB device. \
-In this caces you will have to download and execute [Zadig](https://zadig.akeo.ie/). \
-In it's options you should select the COM port and the driver that should be installed.
+In this case you will have to download and execute [Zadig](https://zadig.akeo.ie/). \
+In its options select **List All Devices**, pick your board from the device list and choose the driver that should be installed (usually **WinUSB**).
 
 ## Extensions
 A list of VS Code extensions for MicroPython development.
 
 ### MicroPico
-It started as rp2 only extension, but now it also support esp32 boards.
+It started as an rp2 only extension, but now it also supports esp32 boards.
 
 #### Setup
 - Manual: Create **empty** file with name ".micropico" in the root directory of your project.
@@ -35,21 +35,23 @@ It started as rp2 only extension, but now it also support esp32 boards.
 Language and IntelliSense support for VS Code 
 
 #### Stubs
-You will need them to provide IntelliSense for integrated modules like "machine", "uasyncio", "uos"... \
+You will need them to provide IntelliSense for integrated modules like "machine", "asyncio", "os"... \
 You can use **pip** to install the **stubs** for the specific board using: \
- **pip install -U micropython-\<port\>[-\<board\>]-stubs==\<micropython_version\> --no-user**
+ **pip install -U micropython-\<port\>[-\<board\>]-stubs==\<micropython_version\> --target typings --no-user**
+
+The stubs version should match the MicroPython version of your firmware. If stubs for your exact version are not published yet, use the closest older version.
 
 ```cmd
-pip install -U micropython-rp2-stubs==1.27.0.* --target typings --no-user
+pip install -U micropython-rp2-stubs==1.29.* --target typings --no-user
 ```
 ```cmd
-pip install -U micropython-rp2-pico_w-stubs==1.27.0.* --target typings --no-user
+pip install -U micropython-rp2-pico_w-stubs==1.29.* --target typings --no-user
 ```
 ```cmd
-pip install -U micropython-esp32-stubs==1.27.0.* --target typings --no-user
+pip install -U micropython-esp32-stubs==1.29.* --target typings --no-user
 ```
 ```cmd
-pip install -U micropython-esp32-esp32_generic_c3-stubs==1.27.0.* --target typings --no-user
+pip install -U micropython-esp32-esp32_generic_c3-stubs==1.29.* --target typings --no-user
 ```
 
 #### .vscode/settings.json
@@ -59,11 +61,11 @@ pip install -U micropython-esp32-esp32_generic_c3-stubs==1.27.0.* --target typin
     "python.analysis.extraPaths": [
         "./lib",
         "./modules",
-        "micropython-esp32-esp32_generic_c3-stubs-1.27.0.post1",
+        "./typings",
         "~/.micropico-stubs/included"
     ],
     "python.analysis.typeshedPaths": [
-        "micropython-esp32-esp32_generic_c3-stubs-1.27.0.post1",
+        "./typings",
         "~/.micropico-stubs/included"
     ],
     "python.analysis.diagnosticSeverityOverrides": {
@@ -78,7 +80,8 @@ pip install -U micropython-esp32-esp32_generic_c3-stubs==1.27.0.* --target typin
         "/env",
         "/venv",
         "/__pycache__",
-        "/modules"
+        "/modules",
+        "/typings"
     ],
     "micropico.syncFileTypes": [
         "py",
@@ -94,11 +97,12 @@ pip install -U micropython-esp32-esp32_generic_c3-stubs==1.27.0.* --target typin
 ```
 
 In this example you have both: \
-pip installed stubs - "micropython-esp32-esp32_generic_c3-stubs-1.27.0.post1" \
+pip installed stubs - "./typings" (installed with **--target typings**) \
 and manually installed stubs - "~/.micropico-stubs/included"
 
 You can remove the one you don't use.
 
 ---
 
-The "/modules" directory is in "micropico.pyIgnore" to prevent the case of having same module in both firmware and flash memory.
+The "/modules" directory is in "micropico.pyIgnore" to prevent having the same module in both firmware and flash memory. \
+"/typings" is ignored because the stubs are only needed by the IDE, not by the board.

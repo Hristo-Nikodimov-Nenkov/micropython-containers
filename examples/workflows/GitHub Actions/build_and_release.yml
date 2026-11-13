@@ -6,7 +6,7 @@
 name: Build and release
 
 env:
-  # The VERSION, MAJOR & MINOR actions variables must be set before workflow push to main brach.
+  # The VERSION, MAJOR & MINOR actions variables must be set before the workflow is pushed to the main branch.
   # You can set them in Settings > Secrets and variables > Actions | Variables |
   BUILD_VERSION: ${{ vars.VERSION }}.${{ vars.MAJOR }}.${{ vars.MINOR }}.${{ github.run_number }}
 
@@ -24,11 +24,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      # The IMAGE_TAG actions variable must be set before workflow push to main brach.
-      # If you preffer using environment variables change "vars." to "env."
+      # The IMAGE_TAG actions variable must be set before the workflow is pushed to the main branch.
+      # If you prefer using environment variables change "vars." to "env."
       # You can set them both in workflow "env:" section or in Settings > Secrets and variables > Actions
       - name: Determine Docker image
         id: docker_image
@@ -50,9 +47,11 @@ jobs:
       
       # The container runs as "root" user, so HOST_UID and HOST_GID will set
       # generated files ownership to runner user:group
+      # (don't name the variables UID/GID - UID is read-only in bash)
+      # For non-ESP32 boards use the "rav3nh01m/micropython" image and add: -e PORT="${{ vars.PORT }}"
 
       # The value of PROJECT_DIR and container mount path must match i.e "/project" in this case
-      # You can set FREEZE_BOOT and FREEZE_MAIN as "environment" or "actions variables"
+      # You can set FREEZE_BOOT and FREEZE_MAIN ("true" to freeze) as "environment" or "actions variables" - when not set nothing is frozen
       # just check if you are using the correct type i.e "env." or "vars." 
       - name: Run MicroPython build container
         run: |
@@ -77,10 +76,12 @@ jobs:
             cp "$f" "release/${base}-v${{ env.BUILD_VERSION }}.bin"
           done
 
+      # Merged image (bootloader + partition table + app), flashed at 0x0
       - name: Create firmware zip
         working-directory: ./release
         run: zip -j firmware-v${{ env.BUILD_VERSION }}.zip firmware-v${{ env.BUILD_VERSION }}.bin
 
+      # Separate images, for flashing at their individual offsets
       - name: Create split firmware zip
         working-directory: ./release
         run: |
@@ -96,7 +97,7 @@ jobs:
       
       # This allows for freezing code inside the firmware and uploading the lib
       # directory as code
-      # !!! If module exists in modules and lib you will receive un error !!! 
+      # !!! If module exists in modules and lib you will receive an error !!! 
       - name: Create code.zip
         run: |
           mkdir -p ./release/code
@@ -132,7 +133,7 @@ jobs:
         run: |
           if [ -f "boot.py" ]; then
             cp boot.py ./release/code/
-            echo "Copied main.py"
+            echo "Copied boot.py"
           else
             echo "boot.py not found — skipping"
           fi
@@ -141,7 +142,7 @@ jobs:
         working-directory: ./release/code
         run: zip -r ../code-v${{ env.BUILD_VERSION }}.zip .
 
-      # Mak sure that you've set Settings > Actions > General - Workflow permissions to "Read and write permissions".
+      # Make sure that you've set Settings > Actions > General - Workflow permissions to "Read and write permissions".
       # Also don't forget to press the "Save" button.
       - name: Authenticate Git
         run: git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
@@ -155,7 +156,7 @@ jobs:
 
       # Uploads files to release
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.BUILD_VERSION }}
           name: Release v${{ env.BUILD_VERSION }}

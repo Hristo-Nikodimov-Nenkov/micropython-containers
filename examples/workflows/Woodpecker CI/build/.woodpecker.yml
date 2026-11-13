@@ -9,7 +9,7 @@ steps:
     environment:
       PORT: rp2
       BOARD: RPI_PICO_W
-      FREEZE_BOOT: false
-      FREEZE_MAIN: false
+      FREEZE_BOOT: "false"
+      FREEZE_MAIN: "false"
 
   

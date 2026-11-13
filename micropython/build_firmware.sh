@@ -28,33 +28,45 @@ else
 fi
 
 # ==============================================================================
-# Change project directory ownership to root:root
-# ==============================================================================
-chown -R 0:0 "$PROJECT_DIR"
-
-# ==============================================================================
-# Check if HOST_UID and/or HOST_GID is set or fallback to 0 (root)
-# ==============================================================================
-TARGET_UID="${HOST_UID:-0}"
-TARGET_GID="${HOST_GID:-0}"
-
-# ==============================================================================
 # Check for custom build_firmware.sh
 # ==============================================================================
 PROJECT_SCRIPT="$PROJECT_DIR/build_firmware.sh"
-IMAGE_SCRIPT="/usr/local/bin/build_firmware.sh"
 
 if [[ -f "$PROJECT_SCRIPT" ]]; then
     echo "================================================================================"
     echo " Using build_firmware.sh from project."
     echo "================================================================================"
-    chmod +x "$PROJECT_DIR/build_firmware.sh"
+    chmod +x "$PROJECT_SCRIPT"
     exec "$PROJECT_SCRIPT"
 else
     echo "================================================================================"
     echo " Using baked-in build_firmware.sh"
     echo "================================================================================"
 fi
+
+# ==============================================================================
+# Ownership of generated files: HOST_UID / HOST_GID, or fall back to the
+# current owner of the project directory (so a manual run never leaves the
+# project owned by root).
+# ==============================================================================
+TARGET_UID="${HOST_UID:-$(stat -c %u "$PROJECT_DIR")}"
+TARGET_GID="${HOST_GID:-$(stat -c %g "$PROJECT_DIR")}"
+
+MANIFEST="$PROJECT_DIR/manifest.py"
+generate_manifest=false
+
+# Runs on success AND failure: remove the generated manifest.py (so it is never
+# mistaken for a project manifest on the next run) and fix ownership.
+cleanup() {
+    local rc=$?
+    if [[ "$generate_manifest" == true ]]; then
+        echo " Removing generated manifest.py..."
+        rm -f "$MANIFEST"
+    fi
+    chown -R "$TARGET_UID:$TARGET_GID" "$PROJECT_DIR" || true
+    exit "$rc"
+}
+trap cleanup EXIT
 
 # ==============================================================================
 # Required environment variables
@@ -69,7 +81,7 @@ BOARD_DIR="${PORT_DIR}/boards/${BOARD}"
 echo "================================================================================"
 echo " Building MicroPython firmware for"
 echo "--------------------------------------------------------------------------------"
-echo " PORT: ${PORT}, BOARD: ${BOARD}"
+echo " PORT: ${PORT}, BOARD: ${BOARD}, BOARD_VARIANT: ${BOARD_VARIANT:-<none>}"
 echo "--------------------------------------------------------------------------------"
 
 if [[ ! -d "$PORT_DIR" ]]; then
@@ -93,14 +105,17 @@ fi
 
 export MPY_CROSS
 
-MANIFEST="$PROJECT_DIR/manifest.py"
 MODULES_DIR="$PROJECT_DIR/modules"
+FROZEN_MANIFEST=""
 
 cd "$PROJECT_DIR"
 
 if [[ -f "$MANIFEST" ]]; then
-    echo " Using existing manifest.py"
+    echo " Using project manifest.py"
     echo "--------------------------------------------------------------------------------"
+    # Relative paths inside a manifest resolve against the manifest's own
+    # directory, so the project manifest is used in place.
+    FROZEN_MANIFEST="$MANIFEST"
 else
     echo " No manifest.py found — checking if generation is needed..."
     echo "--------------------------------------------------------------------------------"
@@ -110,21 +125,22 @@ else
         modules_nonempty=true
     fi
 
-    generate_manifest=false
-
-    if [[ "$modules_nonempty" == true ]]; then
-        generate_manifest=true
-    fi
-
+    # Only freeze main.py / boot.py when requested AND the file exists.
     freeze_main="${FREEZE_MAIN:-false}"
     freeze_main="${freeze_main,,}"
-    if [[ -f "main.py" ]] && [[ "$freeze_main" == true ]]; then
-        generate_manifest=true
+    if [[ "$freeze_main" == true && ! -f "main.py" ]]; then
+        echo " FREEZE_MAIN=true but main.py not found — skipping."
+        freeze_main=false
     fi
 
     freeze_boot="${FREEZE_BOOT:-false}"
     freeze_boot="${freeze_boot,,}"
-    if [[ -f "boot.py" ]] && [[ "$freeze_boot" == true ]]; then
+    if [[ "$freeze_boot" == true && ! -f "boot.py" ]]; then
+        echo " FREEZE_BOOT=true but boot.py not found — skipping."
+        freeze_boot=false
+    fi
+
+    if [[ "$modules_nonempty" == true || "$freeze_main" == true || "$freeze_boot" == true ]]; then
         generate_manifest=true
     fi
 
@@ -144,8 +160,7 @@ else
                 echo 'freeze(".", script="boot.py", opt=3)'
             fi
         } > "$MANIFEST"
-        
-        echo "--------------------------------------------------------------------------------"
+
         echo " Using generated manifest.py"
         echo "--------------------------------------------------------------------------------"
         cat "$MANIFEST"
@@ -154,10 +169,11 @@ else
         echo "========================================================================================="
         echo " Copying files to freeze..."
         echo "-----------------------------------------------------------------------------------------"
-        cp -v "$MANIFEST" "$BOARD_DIR"
-    
+        cp -v "$MANIFEST" "$BOARD_DIR/manifest.py"
+        FROZEN_MANIFEST="$BOARD_DIR/manifest.py"
+
         if [[ "$modules_nonempty" == true ]]; then
-            cp -rv "$PROJECT_DIR/modules" "$BOARD_DIR"
+            cp -rv "$MODULES_DIR" "$BOARD_DIR"
         fi
         if [[ "$freeze_main" == true ]]; then
             cp -v "$PROJECT_DIR/main.py" "$BOARD_DIR"
@@ -172,14 +188,10 @@ else
         # ----------------------------------------------------------------------
         if [[ "$modules_nonempty" == true ]]; then
             frozen_boot_py=False
-            if [[ -f "$PROJECT_DIR/boot.py" && "$freeze_boot" == true ]]; then
-                frozen_boot_py=True
-            fi
+            [[ "$freeze_boot" == true ]] && frozen_boot_py=True
 
             frozen_main_py=False
-            if [[ -f "$PROJECT_DIR/main.py" && "$freeze_main" == true ]]; then
-                frozen_main_py=True
-            fi
+            [[ "$freeze_main" == true ]] && frozen_main_py=True
 
             FIRMWARE_INFO="$BOARD_DIR/modules/firmware.py"
 
@@ -206,38 +218,41 @@ else
     fi
 fi
 
-
 echo "========================================================================================="
 echo " Building firmware..."
 echo "========================================================================================="
 
 cd "$PORT_DIR"
 
-SUBMODULE_ARGS=("BOARD=$BOARD")
+# Use an explicit build directory so it is known regardless of BOARD_VARIANT.
+BUILD_NAME="build-$BOARD"
+COMMON_ARGS=("BOARD=$BOARD")
 
 if [[ -n "${BOARD_VARIANT:-}" ]]; then
-    SUBMODULE_ARGS+=("BOARD_VARIANT=$BOARD_VARIANT")
+    BUILD_NAME="build-$BOARD-$BOARD_VARIANT"
+    COMMON_ARGS+=("BOARD_VARIANT=$BOARD_VARIANT")
 fi
 
-MAKE_ARGS=("BOARD=$BOARD")
+COMMON_ARGS+=("BUILD=$BUILD_NAME")
+MAKE_ARGS=("${COMMON_ARGS[@]}")
 
-if [[ -f "$MANIFEST" ]]; then
-    MAKE_ARGS+=("FROZEN_MANIFEST=$BOARD_DIR/manifest.py")
+if [[ -n "$FROZEN_MANIFEST" ]]; then
+    MAKE_ARGS+=("FROZEN_MANIFEST=$FROZEN_MANIFEST")
 fi
 
 echo "-----------------------------------------------------------------------------------------"
-echo " Make submodule args: ${SUBMODULE_ARGS[@]}"
-echo " Make args: ${MAKE_ARGS[@]}"
+echo " Make submodule args: ${COMMON_ARGS[*]}"
+echo " Make args: ${MAKE_ARGS[*]}"
 echo "-----------------------------------------------------------------------------------------"
 
-make clean
-make "${SUBMODULE_ARGS[@]}" submodules -j2
+make "${COMMON_ARGS[@]}" clean
+make "${COMMON_ARGS[@]}" submodules -j2
 echo "-----------------------------------------------------------------------------------------"
 make "${MAKE_ARGS[@]}" -j2
 echo "-----------------------------------------------------------------------------------------"
 
 # ==============================================================================
-# Create "dist" directory. 
+# Create "dist" directory.
 # ==============================================================================
 OUTPUT_DIR="$PROJECT_DIR/dist"
 rm -rf "$OUTPUT_DIR"
@@ -246,7 +261,7 @@ mkdir -p "$OUTPUT_DIR"
 echo " OUTPUT_DIR: $OUTPUT_DIR"
 echo "-----------------------------------------------------------------------------------------"
 
-BUILD_DIR="$PORT_DIR/build-$BOARD"
+BUILD_DIR="$PORT_DIR/$BUILD_NAME"
 
 if [[ -d "$BUILD_DIR" ]]; then
     cp "$BUILD_DIR"/*.bin "$BUILD_DIR"/*.hex "$BUILD_DIR"/*.uf2 "$OUTPUT_DIR/" 2>/dev/null || true
@@ -255,11 +270,6 @@ else
     echo "========================================================================================="
     exit 5
 fi
-
-# ==============================================================================
-# Change ownership of $PROJECT_DIR to specified UID:GID
-# ==============================================================================
-chown -R "$TARGET_UID:$TARGET_GID" "$PROJECT_DIR"
 
 # ==============================================================================
 # List project and dist directories content.
@@ -273,12 +283,3 @@ echo " Output directory content:"
 echo "-----------------------------------------------------------------------------------------"
 ls -al "$OUTPUT_DIR"
 echo "========================================================================================="
-
-# ==============================================================================
-# Remove manifest.py if auto-generated.
-# ==============================================================================
-if [[ "${generate_manifest:-}" == true ]]; then
-    echo " Removing generated manifest.py..."
-    rm -f "$PROJECT_DIR/manifest.py"
-    echo "========================================================================================="
-fi
